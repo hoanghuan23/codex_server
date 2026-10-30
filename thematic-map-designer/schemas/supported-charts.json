@@ -1,0 +1,103 @@
+{
+  "choropleth": {
+    "slots": {
+      "region": [
+        "geo"
+      ],
+      "value": [
+        "measure",
+        "category"
+      ]
+    }
+  },
+  "map_line": {
+    "slots": {
+      "region": [
+        "category",
+        "geo",
+        "id",
+        "text"
+      ],
+      "value": [
+        "measure",
+        "category"
+      ],
+      "lat": [
+        "geo",
+        "measure"
+      ],
+      "lng": [
+        "geo",
+        "measure"
+      ],
+      "x": [
+        "time",
+        "id",
+        "measure",
+        "category"
+      ]
+    }
+  },
+  "point": {
+    "slots": {
+      "lat": [
+        "geo",
+        "measure"
+      ],
+      "lng": [
+        "geo",
+        "measure"
+      ],
+      "region": [
+        "id",
+        "category",
+        "text",
+        "geo"
+      ]
+    }
+  },
+  "arc_flow": {
+    "slots": {
+      "source": [
+        "id",
+        "category",
+        "text",
+        "geo"
+      ],
+      "target": [
+        "id",
+        "category",
+        "text",
+        "geo"
+      ],
+      "sourceLat": [
+        "geo",
+        "measure"
+      ],
+      "sourceLng": [
+        "geo",
+        "measure"
+      ],
+      "targetLat": [
+        "geo",
+        "measure"
+      ],
+      "targetLng": [
+        "geo",
+        "measure"
+      ],
+      "value": [
+        "measure"
+      ],
+      "time": [
+        "time"
+      ],
+      "group": [
+        "category",
+        "id",
+        "text",
+        "time"
+      ]
+    }
+  }
+}

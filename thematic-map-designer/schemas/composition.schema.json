@@ -1,0 +1,234 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "decisions",
+    "searchLayerIds",
+    "attributeJoins"
+  ],
+  "properties": {
+    "decisions": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "layerId",
+          "action",
+          "targetGroupId",
+          "newGroupKey",
+          "groupTitle",
+          "confidence",
+          "reason"
+        ],
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "append_to_group",
+              "create_group",
+              "undetermined"
+            ]
+          },
+          "targetGroupId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "newGroupKey": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "groupTitle": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 800
+          }
+        }
+      }
+    },
+    "attributeJoins": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sourceId",
+          "targetLayerId",
+          "keyPairs",
+          "popupSuggestions",
+          "popupContent",
+          "confidence",
+          "reason"
+        ],
+        "properties": {
+          "sourceId": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "targetLayerId": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "keyPairs": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "sourceField",
+                "targetField"
+              ],
+              "properties": {
+                "sourceField": {
+                  "type": "string",
+                  "maxLength": 160
+                },
+                "targetField": {
+                  "type": "string",
+                  "maxLength": 160
+                }
+              }
+            }
+          },
+          "popupSuggestions": {
+            "type": "array",
+            "maxItems": 4,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "confidence"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "enum": [
+                    "info",
+                    "info_image",
+                    "bar",
+                    "line"
+                  ]
+                },
+                "confidence": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            }
+          },
+          "popupContent": {
+            "$ref": "#/$defs/popupContent"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 800
+          }
+        }
+      }
+    },
+    "searchLayerIds": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "string",
+        "maxLength": 160
+      }
+    }
+  },
+  "$defs": {
+    "popupContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "titleField",
+        "imageFields",
+        "descriptionFields",
+        "addressFields",
+        "linkFields"
+      ],
+      "properties": {
+        "titleField": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "imageFields": {
+          "type": "array",
+          "maxItems": 30,
+          "items": {
+            "type": "string",
+            "maxLength": 160
+          }
+        },
+        "descriptionFields": {
+          "type": "array",
+          "maxItems": 30,
+          "items": {
+            "type": "string",
+            "maxLength": 160
+          }
+        },
+        "addressFields": {
+          "type": "array",
+          "maxItems": 30,
+          "items": {
+            "type": "string",
+            "maxLength": 160
+          }
+        },
+        "linkFields": {
+          "type": "array",
+          "maxItems": 30,
+          "items": {
+            "type": "string",
+            "maxLength": 160
+          }
+        }
+      }
+    }
+  }
+}

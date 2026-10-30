@@ -1,0 +1,4 @@
+interface:
+  display_name: "Thiết kế bản đồ từ dữ liệu"
+  short_description: "Tạo bản đồ web với HTML, JavaScript và CSS"
+  default_prompt: "Dùng $thematic-map-designer: đọc input, tạo index.html, app.js và style.css trong thư mục output, rồi kiểm tra bằng scripts/validate.py --format web."

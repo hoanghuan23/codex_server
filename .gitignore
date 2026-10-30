@@ -1,0 +1,9 @@
+.vscode/
+__pycache__/
+
+tests/
+
+.env
+
+# dữ liệu test
+output_*/
