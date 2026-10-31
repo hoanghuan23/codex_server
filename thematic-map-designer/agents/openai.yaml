@@ -1,4 +1,4 @@
 interface:
   display_name: "Thiết kế bản đồ từ dữ liệu"
   short_description: "Tạo bản đồ web với HTML, JavaScript và CSS"
-  default_prompt: "Dùng $thematic-map-designer: đọc input, tạo index.html, app.js và style.css trong thư mục output, rồi kiểm tra bằng scripts/validate.py --format web."
+  default_prompt: "Dùng $thematic-map-designer phân tích dữ liệu, áp dụng prompt chung và prompt riêng cho Polygon, Point, Line hoặc Arc Flow 3D phù hợp, rồi trả JSON chứa index.html, style.css, app.js cho bản đồ toàn màn hình."

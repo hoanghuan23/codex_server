@@ -1,8 +1,8 @@
 # Trích văn bản rồi phân tích bản đồ
 
-Mode text_analysis nhận `text` và `supportedCharts`. Text là nội dung đã được ứng dụng đọc từ tài liệu; không gửi file nhị phân vào hợp đồng này. Đọc toàn văn, trích bảng và phân tích bảng đó theo text-analysis.schema.json; không yêu cầu lượt phân tích thứ hai. Với đầu ra web mặc định, nhúng bảng và cấu hình trong `app.js`, tạo giao diện HTML/CSS. Chỉ trả cấu trúc JSON dưới đây khi caller yêu cầu `output_format=json`.
+Mode `text_analysis` nhận toàn văn `text` và danh sách `supportedCharts` tùy chọn theo [input-contract.md](input-contract.md). Đọc toàn văn, trích các quan sát rồi chọn prompt bản đồ; không yêu cầu lượt phân tích thứ hai. Nhúng dữ liệu trích được trong `app.js` và tạo bản đồ web.
 
-Trả `fields` (tên cột duy nhất), `rows` (mảng ô theo đúng thứ tự fields), `analysis` (hợp đồng analysis). Mỗi dòng có đúng số ô như fields; ô chỉ có string, number, boolean hoặc null. Tên cột rõ nghĩa bằng tiếng Việt, không có metadata nội bộ. Mọi name/binding/search_fields/metricButtons.field trong analysis chỉ tham chiếu fields vừa tạo. Ứng dụng ghép fields với từng row để tạo records, không yêu cầu AI thêm records ngoài schema.
+Dữ liệu trích là cấu trúc nội bộ: đặt tên cột rõ nghĩa bằng tiếng Việt, mỗi dòng mô tả đúng đối tượng, kỳ và ngữ cảnh. Ô chứa string, number, boolean hoặc null; popup, tìm kiếm và chọn chỉ tiêu chỉ tham chiếu trường thực đã trích. Đầu ra duy nhất là JSON mã nguồn ba file theo [web-output.md](web-output.md).
 
 ## Giữ đúng quan sát
 
@@ -25,6 +25,6 @@ Giữ số trực tiếp thành number, đơn vị trong tên cột/metadata; kh
 
 Số 0 chỉ áp dụng cho đúng chỉ số/phạm vi được nói rõ là không có. Không có dữ liệu là null. Một phân nhóm bằng 0 không làm tổng mọi nhóm bằng 0. Kỳ có năm giữ theo nguồn, tháng có năm dùng YYYY-MM, ngày có năm dùng YYYY-MM-DD; thiếu năm không tự thêm. Năm xuất bản hoặc mốc lịch sử trong ghi chú không tự trở thành kỳ quan sát.
 
-Nếu không có quan sát cụ thể, fields và rows rỗng; analysis vẫn đủ trường: columns/suggestions/search_fields rỗng, search_bar false, regionNavigation null, popupContent với titleField null và các danh sách rỗng. Giải thích thiếu dữ liệu trong grain, không tạo bản đồ giả.
+Nếu không có quan sát cụ thể, giữ dữ liệu trích rỗng và hiển thị thông báo thiếu dữ liệu gọn trên bản đồ, không tạo bản đồ giả.
 
-Trước khi xuất, đối chiếu toàn văn: đủ đối tượng/chỉ số/kỳ, đúng phạm vi, không trùng nghĩa, không mất số trực tiếp hoặc số tính duy nhất được. Không xuất các bước suy luận. Sau khi tạo bảng, áp dụng các quy tắc map-rules.md và presentation.md cho analysis; xuất web hoặc JSON theo `output_format` trong SKILL.md.
+Trước khi xuất, đối chiếu toàn văn: đủ đối tượng/chỉ số/kỳ, đúng phạm vi, không trùng nghĩa, không mất số trực tiếp hoặc số tính duy nhất được. Không xuất các bước suy luận. Sau khi trích dữ liệu, áp dụng prompt chung và prompt riêng của loại bản đồ theo `SKILL.md`; tham khảo [presentation.md](presentation.md) khi cần popup/chú giải phức tạp.

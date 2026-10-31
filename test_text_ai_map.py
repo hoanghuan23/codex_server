@@ -65,7 +65,7 @@ def parse_files(raw):
     try:
         obj = json.loads(raw)
     except json.JSONDecodeError as e:
-        raise ValueError('AI không trả JSON hợp lệ. Đã lưu raw_response.txt để kiểm tra.') from e
+        raise ValueError('AI không trả JSON hợp lệ.') from e
     required = {'index.html', 'style.css', 'app.js'}
     if not isinstance(obj, dict) or not required.issubset(obj):
         raise ValueError('AI không trả đủ 3 file: index.html, style.css, app.js')
@@ -104,7 +104,6 @@ def main():
         raise RuntimeError('Codex thất bại: ' + str(payload)[:1200])
     raw = payload.get('result', '')
     OUTPUT.mkdir(parents=True, exist_ok=True)
-    (OUTPUT / 'raw_response.txt').write_text(raw, encoding='utf-8')
     files = parse_files(raw)
     for name in ('index.html', 'style.css', 'app.js'):
         path = OUTPUT / name

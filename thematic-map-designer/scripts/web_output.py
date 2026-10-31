@@ -1,4 +1,5 @@
-"""Tách phản hồi gồm ba khối file và kiểm tra đầu ra web, không thực thi mã ứng dụng."""
+"""Tách JSON mã nguồn hoặc ba khối file cũ và kiểm tra đầu ra web."""
+import json
 import re
 import shutil
 import subprocess
@@ -11,6 +12,33 @@ FILE_LANGUAGES = {'index.html': 'html', 'app.js': 'javascript', 'style.css': 'cs
 FILE_BLOCK = re.compile(
     r'```(?P<language>html|javascript|css) filename=(?P<name>[^\n]+)\n'
     r'(?P<content>.*?)^```[ \t]*(?:\n|$)', re.M | re.S)
+
+
+def parse_web_files(raw):
+    """Đọc đúng ba file từ JSON; giữ tương thích phản hồi Markdown cũ."""
+    if not isinstance(raw, str):
+        raise ValueError('Phản hồi phải là chuỗi JSON chứa mã nguồn ba file.')
+    if raw.lstrip().startswith('```'):
+        return parse_file_blocks(raw)
+
+    def unique_keys(pairs):
+        result = {}
+        for name, value in pairs:
+            if name in result:
+                raise ValueError(f'Khóa bị lặp trong JSON: {name}')
+            result[name] = value
+        return result
+
+    try:
+        files = json.loads(raw, object_pairs_hook=unique_keys)
+    except json.JSONDecodeError as exc:
+        raise ValueError('Phản hồi không phải JSON mã nguồn hợp lệ.') from exc
+    if not isinstance(files, dict) or set(files) != set(WEB_FILES):
+        raise ValueError('JSON phải chứa chính xác index.html, style.css, app.js.')
+    for name, content in files.items():
+        if not isinstance(content, str) or not content.strip():
+            raise ValueError(f'Nội dung file {name} rỗng hoặc không phải chuỗi.')
+    return files
 
 
 def parse_file_blocks(raw):

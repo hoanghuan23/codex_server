@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Chọn file dữ liệu và tự động tạo bản đồ tương tác với nền Liberty.">
+  <title>Tạo bản đồ từ file</title>
+  <link rel="stylesheet" href="/ui/style.css">
+  <script src="/ui/app.js" defer></script>
+</head>
+<body>
+  <main class="workspace">
+    <header class="intro">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none"><path d="m3 8 9-4 8 4 9-4v20l-9 4-8-4-9 4V8Z"/><path d="M12 4v20M20 8v20"/></svg>
+      </div>
+      <p class="eyebrow">TỪ DỮ LIỆU ĐẾN BẢN ĐỒ</p>
+      <h1>Chọn file. Tạo bản đồ.</h1>
+      <p class="description">Tự động đọc dữ liệu, chọn cách thể hiện phù hợp<br class="desktop-break"> và dựng bản đồ tương tác trên nền Liberty.</p>
+    </header>
+
+    <section class="card" aria-label="Chọn dữ liệu bản đồ">
+      <form id="upload-form">
+        <label class="file-zone" id="file-zone" for="data-file">
+          <svg class="upload-icon" aria-hidden="true" viewBox="0 0 32 32" fill="none"><path d="M16 21V5m-6 6 6-6 6 6M5 21v4a3 3 0 0 0 3 3h16a3 3 0 0 0 3-3v-4"/></svg>
+          <span class="file-title" id="file-title">Chọn file dữ liệu</span>
+          <span class="file-hint" id="file-hint">hoặc kéo thả một file vào đây</span>
+          <input id="data-file" name="file" type="file" accept=".geojson,.json,.xlsx,.docx,.txt" aria-describedby="formats file-hint">
+        </label>
+        <p id="formats" class="formats">GeoJSON <span>·</span> Excel (.xlsx) <span>·</span> Word (.docx) <span>·</span> TXT</p>
+        <button id="create-button" class="primary-button" type="submit" disabled>
+          <span id="button-label">Tạo bản đồ</span>
+          <svg id="button-arrow" aria-hidden="true" viewBox="0 0 20 20" fill="none"><path d="M4 10h12m-5-5 5 5-5 5"/></svg>
+          <span class="spinner" id="button-spinner" aria-hidden="true" hidden></span>
+        </button>
+      </form>
+
+      <section id="progress" class="progress" aria-label="Tiến độ xử lý" hidden>
+        <p class="status-text" id="status-text" role="status" aria-live="polite"></p>
+        <ol class="steps">
+          <li data-stage="reading"><span class="step-dot"></span>Đọc file</li>
+          <li data-stage="analyzing"><span class="step-dot"></span>Phân tích</li>
+          <li data-stage="generating"><span class="step-dot"></span>Dựng bản đồ</li>
+          <li data-stage="validating"><span class="step-dot"></span>Kiểm tra</li>
+          <li data-stage="completed"><span class="step-dot"></span>Hoàn tất</li>
+        </ol>
+      </section>
+
+      <div id="error" class="error" role="alert" hidden></div>
+
+      <section id="result" class="result" aria-label="Kết quả bản đồ" hidden>
+        <div class="result-heading"><h2 id="result-title">Bản đồ đã sẵn sàng</h2><span id="chart-label" class="badge" hidden></span></div>
+        <p id="reason" class="reason"></p>
+        <ul id="missing-data" class="missing-data" hidden></ul>
+        <div id="output-details" hidden>
+          <p class="output-label">THƯ MỤC KẾT QUẢ</p>
+          <p id="output-directory" class="output-directory"></p>
+          <a id="open-map" class="open-map" target="_blank" rel="noopener noreferrer">Mở bản đồ <span aria-hidden="true">↗</span></a>
+        </div>
+      </section>
+    </section>
+    <p class="footnote">Một file, một bản đồ. File gốc được giữ nguyên.</p>
+  </main>
+</body>
+</html>
