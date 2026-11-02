@@ -24,7 +24,7 @@ Không mặc định dữ liệu là số đo: phân loại cột địa lý, ph
 - Bản đồ chiếm toàn bộ màn hình (`100vw`, `100vh`).
 - Không tạo header, footer, tiêu đề trang, dashboard, sidebar cố định hoặc các khối nội dung độc lập bên ngoài bản đồ.
 - Không tạo phần giới thiệu, KPI, thống kê tổng quan hay mô tả dài phía trên bản đồ.
-- Tất cả thành phần giao diện hiển thị dạng overlay trực tiếp trên bản đồ; ưu tiên gọn gàng, trực quan, không che khuất dữ liệu địa lý.
+- Tất cả thành phần giao diện hiển thị dạng overlay trực tiếp trên bản đồ; ưu tiên gọn gàng, trực quan, không chiếm quá nhiều diện tích bản đồ.
 - Chỉ thay bố cục này khi người dùng yêu cầu dashboard rõ ràng hoặc caller đặt `webOptions.layout="dashboard"`.
 
 ### 3. Các chức năng tương tác
@@ -42,12 +42,14 @@ Không mặc định dữ liệu là số đo: phân loại cột địa lý, ph
 - Tự đề xuất chú giải categorical hoặc continuous phù hợp với dữ liệu và cách biểu diễn.
 - Chú giải hiển thị nổi trên bản đồ, ưu tiên vị trí góc dưới; nhãn và đơn vị rõ ràng.
 - Popup xuất hiện khi người dùng tương tác với đối tượng địa lý. Tự quyết định nội dung theo các trường dữ liệu thực tế.
+- Popup đang mở phải nằm phía trước mọi canvas và lớp dữ liệu, gồm đường/cung 3D, viền sáng và vệt chuyển động; các nét vẽ không được xuyên qua nội dung popup. Thiết lập `z-index` và kiểm tra stacking context của cả phần tử cha, không chỉ tăng `z-index` cho nội dung con. Nút đóng và nội dung popup nhận tương tác; vùng ngoài popup vẫn kéo/zoom được bản đồ.
 - Đổi chỉ tiêu phải cập nhật biểu diễn, chú giải, đơn vị và popup tương ứng; lọc hết dữ liệu thì hiển thị trạng thái trống.
 - Không tạo bảng thống kê hoặc khối thông tin riêng ngoài bản đồ.
 
 ### 5. Dữ liệu và địa lý
 
 - Dùng MapLibre GL JS với bản đồ nền OpenFreeMap style Liberty cho mọi loại bản đồ. Đặt URL nguyên văn `https://tiles.openfreemap.org/styles/liberty` trong `app.js` khi khởi tạo `maplibregl.Map`; thêm thư viện tương thích khi loại bản đồ cần renderer riêng.
+- Giữ nguyên màu và các lớp của style Liberty; không đổi sang nền tối, phủ bộ lọc màu, ẩn lớp nền hoặc thay bằng style trống để làm nổi dữ liệu, trừ khi người dùng yêu cầu rõ. Nếu nền tải chậm/lỗi, báo trạng thái và giữ nguồn Liberty để còn tải tiếp; lớp dữ liệu vẫn độc lập với trạng thái tải nền.
 - Ưu tiên geometry/tọa độ được cấp. Nếu cần, tìm ranh giới GeoJSON, tọa độ hoặc mạng tuyến thực tế từ nguồn công khai theo [online-geography.md](../online-geography.md).
 - Kiểm tra mã/tên, vùng cha, cấp địa lý, hệ tọa độ và thời điểm ranh giới trước khi ghép. Giữ nguồn gọn trong attribution hoặc panel thu gọn.
 - Không bịa tọa độ, ranh giới hay giá trị dữ liệu. Không tự bổ sung số liệu nghiệp vụ từ Internet hoặc suy diễn giá trị trống thành dữ liệu thật; phân biệt `0` với `null`.
@@ -60,6 +62,7 @@ Không mặc định dữ liệu là số đo: phân loại cột địa lý, ph
 
 - Giao diện tiếng Việt, responsive trên desktop và mobile.
 - Các điều khiển gọn, dễ sử dụng, không chồng chéo và không chặn thao tác kéo/zoom bản đồ ngoài vùng điều khiển.
+- Cho phép kéo, zoom, xoay và nghiêng tự do trong phạm vi kỹ thuật của renderer; không đặt `maxBounds` theo vùng dữ liệu, khóa thao tác hoặc thu hẹp giới hạn zoom mặc định. Với bản đồ Mercator toàn cầu, giữ `renderWorldCopies: true` để kéo liên tục qua kinh tuyến 180°. Fit dữ liệu chỉ thiết lập khung nhìn ban đầu hoặc khi người dùng chọn định vị/vừa khung/đặt lại; không tự kéo camera về khi người dùng đang di chuyển, lọc dữ liệu hay resize.
 - Wrapper overlay phủ màn hình phải để sự kiện đi xuống bản đồ (`pointer-events: none`); chỉ panel/nút/input thực sự tương tác mới nhận lại `pointer-events: auto`. Không dùng lớp trong suốt phủ canvas chặn bấm/chạm.
 - Có trạng thái loading, empty và error khi cần. Thiếu geometry hoặc không ghép được thì báo gọn trên bản đồ; vẫn vẽ các đối tượng hợp lệ.
 - Tự quyết định vị trí các overlay sao cho hợp lý. Giữ các nguồn dữ liệu và thư viện tương thích; lỗi tải nền không làm mất geometry đã có.
