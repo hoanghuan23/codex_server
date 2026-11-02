@@ -13,6 +13,7 @@ Không mặc định dữ liệu là số đo: phân loại cột địa lý, ph
 ### 1. Phân tích dữ liệu
 
 - Xác định ý nghĩa các cột, mỗi dòng mô tả đối tượng nào, các nhóm dữ liệu, phạm vi và cấp độ địa lý.
+- Nếu caller cấp `source.sheetName`, giữ sheet đó làm dữ liệu chính, không tự chọn lại sheet khác. Các sheet còn lại chỉ làm ngữ cảnh hoặc tham chiếu tọa độ/danh mục có khóa rõ ràng.
 - Tự chọn Polygon, Point, Line, Arc Flow 3D hoặc kết hợp theo dữ liệu. Nếu có danh sách `supportedCharts`, chỉ dùng loại trong danh sách; danh sách rỗng thì hiển thị chưa có loại được hỗ trợ. Bỏ trường này thì hỗ trợ cả bốn loại. Áp dụng prompt riêng cho mỗi loại được chọn.
 - Tự đề xuất màu sắc, kiểu hiển thị, mức zoom và cách thể hiện dữ liệu. Tự fit phạm vi theo các đối tượng đã định vị thực tế.
 - Giữ nguyên tên cột, giá trị, đơn vị, thời gian và phạm vi quan sát. ID, mã vùng, STT và tọa độ không tự trở thành chỉ tiêu định lượng.
@@ -32,6 +33,9 @@ Không mặc định dữ liệu là số đo: phân loại cột địa lý, ph
 - Có thể bao gồm tìm kiếm đối tượng/khu vực, bộ lọc dữ liệu, lựa chọn chỉ tiêu, bật/tắt lớp, điều khiển thời gian và chú giải.
 - Đặt chức năng trực tiếp trên bản đồ dưới dạng floating control, dropdown, popup hoặc panel có thể thu gọn.
 - Chỉ tạo chức năng có ý nghĩa và hoạt động thực tế. Thao tác trên dữ liệu đã có, không gọi AI lại khi người dùng lọc hoặc đổi chỉ tiêu.
+- Bấm/chạm trực tiếp đối tượng phải chọn đúng bản ghi và mở thông tin; dùng chung một luồng chọn cho thao tác trên bản đồ và kết quả tìm kiếm. Không chỉ mở popup từ danh sách tìm kiếm.
+- Dùng khóa ổn định, duy nhất để nối bản ghi, geometry, kết quả tìm kiếm và trạng thái chọn; thống nhất kiểu dữ liệu của khóa. Với GeoJSON MapLibre, giữ khóa trong `properties`; nếu dùng khóa chuỗi làm feature ID cho `setFeatureState`, khai báo `promoteId` trỏ tới thuộc tính đó khi `addSource`. Không giả định `feature.id` trả về từ hit-test luôn bằng ID gốc nếu chưa cấu hình nguồn; không dùng kiểm tra truthy làm mất ID `0`.
+- Khi có tìm kiếm, hiển thị kết quả khớp và trạng thái không tìm thấy. Chọn kết quả bằng chuột hoặc Enter phải định vị đối tượng, làm nổi bật đối tượng trên bản đồ và mở cùng nội dung như khi bấm trực tiếp; chỉ di chuyển camera hoặc mở popup là chưa đủ.
 
 ### 4. Chú giải và popup
 
@@ -56,6 +60,7 @@ Không mặc định dữ liệu là số đo: phân loại cột địa lý, ph
 
 - Giao diện tiếng Việt, responsive trên desktop và mobile.
 - Các điều khiển gọn, dễ sử dụng, không chồng chéo và không chặn thao tác kéo/zoom bản đồ ngoài vùng điều khiển.
+- Wrapper overlay phủ màn hình phải để sự kiện đi xuống bản đồ (`pointer-events: none`); chỉ panel/nút/input thực sự tương tác mới nhận lại `pointer-events: auto`. Không dùng lớp trong suốt phủ canvas chặn bấm/chạm.
 - Có trạng thái loading, empty và error khi cần. Thiếu geometry hoặc không ghép được thì báo gọn trên bản đồ; vẫn vẽ các đối tượng hợp lệ.
 - Tự quyết định vị trí các overlay sao cho hợp lý. Giữ các nguồn dữ liệu và thư viện tương thích; lỗi tải nền không làm mất geometry đã có.
 

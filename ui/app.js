@@ -13,11 +13,21 @@ const progress = document.querySelector('#progress');
 const statusText = document.querySelector('#status-text');
 const errorBox = document.querySelector('#error');
 const result = document.querySelector('#result');
+const excelPanel = document.querySelector('#excel-selection');
+const excelStatus = document.querySelector('#excel-status');
+const sheetSelect = document.querySelector('#sheet-select');
 const labels = {choropleth: 'Polygon', point: 'Point', map_line: 'Line', arc_flow: 'Arc Flow 3D'};
 const stages = ['reading', 'analyzing', 'generating', 'validating', 'completed'];
 let activeJob = null;
 let busy = false;
 let lastStage = -1;
+let sheetNames = [];
+let excelLoading = false;
+let selectionReady = false;
+let previewRequest = 0;
+let previewController = null;
+
+const isExcel = () => /\.xlsx$/i.test(fileInput.files[0]?.name || '');
 
 function showError(message) {
   errorBox.textContent = message;
@@ -28,14 +38,24 @@ function setBusy(value) {
   busy = value;
   fileInput.disabled = value || Boolean(activeJob);
   fileZone.classList.toggle('busy', fileInput.disabled);
-  button.disabled = value || (!activeJob && !fileInput.files.length);
-  buttonLabel.textContent = value ? 'Đang xử lý…' : activeJob ? 'Kiểm tra lại' : 'Tạo bản đồ';
-  spinner.hidden = !value;
-  arrow.hidden = value;
-  form.setAttribute('aria-busy', String(value));
+  const pending = value || excelLoading;
+  sheetSelect.disabled = value || Boolean(activeJob) || excelLoading || !sheetNames.length;
+  button.disabled = pending || (!activeJob && (!fileInput.files.length || (isExcel() && !selectionReady)));
+  buttonLabel.textContent = value ? 'Đang xử lý…' : activeJob ? 'Kiểm tra lại' : excelLoading ? 'Đang đọc sheet…' : 'Tạo bản đồ';
+  spinner.hidden = !pending;
+  arrow.hidden = pending;
+  form.setAttribute('aria-busy', String(pending));
 }
 
-function updateFile() {
+async function updateFile() {
+  previewController?.abort();
+  const requestId = ++previewRequest;
+  sheetNames = [];
+  selectionReady = false;
+  excelLoading = false;
+  sheetSelect.replaceChildren(new Option('Chọn sheet…', ''));
+  excelStatus.hidden = true;
+  excelPanel.hidden = !isExcel();
   const file = fileInput.files[0];
   fileTitle.textContent = file ? file.name : 'Chọn file dữ liệu';
   fileHint.textContent = file ? `${new Intl.NumberFormat('vi-VN', {maximumFractionDigits: 1}).format(file.size / 1024)} KB · Nhấn để chọn file khác` : 'hoặc kéo thả một file vào đây';
@@ -45,7 +65,43 @@ function updateFile() {
     progress.hidden = true;
   }
   setBusy(false);
+  if (!isExcel()) return;
+  excelLoading = true;
+  excelStatus.textContent = 'Đang đọc tên sheet…';
+  excelStatus.hidden = false;
+  setBusy(false);
+  previewController = new AbortController();
+  try {
+    const body = new FormData();
+    body.append('file', file);
+    const data = await readResponse(await fetch('/api/excel/sheets', {method: 'POST', body, signal: previewController.signal}));
+    if (requestId !== previewRequest) return;
+    if (!Array.isArray(data.sheets) || !data.sheets.length || data.sheets.some(name => typeof name !== 'string')) {
+      throw new Error('File Excel không có sheet để chọn.');
+    }
+    sheetNames = data.sheets;
+    sheetSelect.replaceChildren(new Option('Chọn sheet…', ''), ...sheetNames.map(name => new Option(name, name)));
+  } catch (error) {
+    if (requestId !== previewRequest || error.name === 'AbortError') return;
+    showError(error.status === 404
+      ? 'Không tải được tên sheet. Hãy khởi động lại giao diện và mở http://127.0.0.1:8001.'
+      : error.message);
+  } finally {
+    if (requestId === previewRequest) {
+      excelLoading = false;
+      excelStatus.hidden = true;
+      setBusy(busy);
+    }
+  }
 }
+
+sheetSelect.addEventListener('change', () => {
+  showError('');
+  result.hidden = true;
+  progress.hidden = true;
+  selectionReady = sheetNames.includes(sheetSelect.value);
+  setBusy(busy);
+});
 
 fileInput.addEventListener('change', updateFile);
 for (const name of ['dragenter', 'dragover']) {
@@ -149,7 +205,7 @@ async function watchJob() {
 
 form.addEventListener('submit', async event => {
   event.preventDefault();
-  if (busy || (!activeJob && !fileInput.files.length)) return;
+  if (busy || excelLoading || (!activeJob && (!fileInput.files.length || (isExcel() && !selectionReady)))) return;
   showError('');
   setBusy(true);
   try {
@@ -162,6 +218,9 @@ form.addEventListener('submit', async event => {
       for (const step of document.querySelectorAll('.steps li')) step.classList.remove('done', 'current');
       const body = new FormData();
       body.append('file', fileInput.files[0]);
+      if (isExcel()) {
+        body.append('selected_sheet', sheetSelect.value);
+      }
       const data = await readResponse(await fetch('/api/jobs', {method: 'POST', body}));
       activeJob = data.job_id;
     }

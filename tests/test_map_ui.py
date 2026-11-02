@@ -53,8 +53,64 @@ class MapUITests(unittest.TestCase):
         self.client.__enter__()
         self.addCleanup(self.client.__exit__, None, None, None)
 
-    def submit(self, filename='dữ liệu.txt', contents='Huế có 0 điểm.'.encode()):
-        return self.client.post('/api/jobs', files={'file': (filename, contents)})
+    def submit(self, filename='dữ liệu.txt', contents='Huế có 0 điểm.'.encode(), **fields):
+        return self.client.post('/api/jobs', files={'file': (filename, contents)}, data=fields)
+
+    def excel_fixture(self):
+        book = Workbook()
+        book.active.title = 'Hai bảng'
+        for row in [['Vùng', 'Giá trị'], ['Bảng không chọn', 999], [None, None],
+                    ['Vị trí', 'Giá trị', 'Ghi chú'], ['Huế', 0, None], ['Đà Nẵng', 2, 'Ghi chú']]:
+            book.active.append(row)
+        reference = book.create_sheet('Tọa độ')
+        reference.append(['Vị trí', 'lng', 'lat'])
+        reference.append(['Huế', 107.59, 16.46])
+        buffer = io.BytesIO()
+        book.save(buffer)
+        book.close()
+        return buffer.getvalue()
+
+    def test_excel_sheet_names_do_not_read_rows_or_call_ai(self):
+        with patch('map_pipeline.requests.post') as upstream, patch('ui_server.read_input') as read_rows:
+            result = self.client.post('/api/excel/sheets', files={'file': ('many.xlsx', self.excel_fixture())})
+        self.assertEqual(result.status_code, 200, result.text)
+        upstream.assert_not_called()
+        read_rows.assert_not_called()
+        self.assertEqual(result.json(), {'sheets': ['Hai bảng', 'Tọa độ']})
+        self.assertNotIn(self.settings.api_token, result.text)
+
+    def test_selected_sheet_is_sent_to_both_ai_steps(self):
+        with self.fake_api('point', 'Tọa độ') as upstream:
+            created = self.submit('many.xlsx', self.excel_fixture(), selected_sheet='Tọa độ')
+            self.assertEqual(created.status_code, 202, created.text)
+            job = self.wait(created.json()['job_id'])
+        self.assertEqual(job['status'], 'completed', job)
+        self.assertEqual(job['selection'], {'sheet': 'Tọa độ'})
+        prompt = upstream.call_args_list[0].kwargs['json']['prompt']
+        classification_input = json.loads(prompt.split('DỮ LIỆU FILE (JSON):\n', 1)[1])
+        generation = upstream.call_args_list[1].kwargs['json']['input']
+        for payload in (classification_input, generation):
+            self.assertEqual(payload['source']['sheetName'], 'Tọa độ')
+            self.assertNotIn('cellRange', payload['source'])
+            self.assertNotIn('primaryTable', payload)
+            self.assertEqual(payload['sheets'][1]['rows'][1], ['Huế', 107.59, 16.46])
+            self.assertEqual(payload['sheets'][0]['rows'][4], ['Huế', 0, None])
+            self.assertEqual(len(payload['sheets']), 2)
+
+    def test_ai_cannot_change_user_selected_sheet(self):
+        with self.fake_api('point', 'Tọa độ') as upstream:
+            job = self.wait(self.submit('many.xlsx', self.excel_fixture(), selected_sheet='Hai bảng').json()['job_id'])
+        self.assertEqual(job['status'], 'failed')
+        self.assertIn('khác sheet', job['error'])
+        self.assertEqual(upstream.call_count, 1)
+
+    def test_invalid_excel_sheet_and_names_errors_never_call_ai(self):
+        with patch('map_pipeline.requests.post') as upstream:
+            job = self.wait(self.submit('many.xlsx', self.excel_fixture(), selected_sheet='Không có').json()['job_id'])
+            self.assertEqual(job['status'], 'failed')
+            self.assertEqual(self.client.post('/api/excel/sheets', files={'file': ('text.txt', b'text')}).status_code, 400)
+            self.assertEqual(self.client.post('/api/excel/sheets', files={'file': ('broken.xlsx', b'bad')}).status_code, 400)
+            upstream.assert_not_called()
 
     def wait(self, job_id):
         deadline = time.monotonic() + 10

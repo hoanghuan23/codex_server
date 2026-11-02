@@ -49,6 +49,28 @@ def read_excel(path):
     return {'sheets': sheets}
 
 
+def excel_sheet_names(path):
+    """Chỉ đọc tên sheet để người dùng chọn, không trích dữ liệu hoặc gọi AI."""
+    try:
+        workbook = load_workbook(path, read_only=True, data_only=True)
+        try:
+            return [sheet.title for sheet in workbook.worksheets]
+        finally:
+            workbook.close()
+    except Exception as exc:
+        raise ValueError('Không đọc được tên sheet. Hãy kiểm tra file .xlsx có hợp lệ không.') from exc
+
+
+def select_excel_sheet(document, sheet_name=None):
+    if not sheet_name:
+        return document
+    sheets = document.data.get('sheets', [])
+    if not any(sheet['sheet'] == sheet_name for sheet in sheets):
+        raise ValueError('Sheet đã chọn không tồn tại hoặc không có dữ liệu.')
+    source = {**document.data['source'], 'sheetName': sheet_name}
+    return MapInput(document.mode, {**document.data, 'source': source})
+
+
 def read_word(path):
     from docx import Document
     from docx.table import Table

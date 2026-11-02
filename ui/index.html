@@ -28,6 +28,11 @@
           <input id="data-file" name="file" type="file" accept=".geojson,.json,.xlsx,.docx,.txt" aria-describedby="formats file-hint">
         </label>
         <p id="formats" class="formats">GeoJSON <span>·</span> Excel (.xlsx) <span>·</span> Word (.docx) <span>·</span> TXT</p>
+        <section id="excel-selection" class="excel-selection" aria-labelledby="excel-heading" hidden>
+          <label id="excel-heading" for="sheet-select">Chọn sheet</label>
+          <select id="sheet-select" disabled><option value="">Chọn sheet…</option></select>
+          <p id="excel-status" class="selection-hint" role="status" aria-live="polite" hidden></p>
+        </section>
         <button id="create-button" class="primary-button" type="submit" disabled>
           <span id="button-label">Tạo bản đồ</span>
           <svg id="button-arrow" aria-hidden="true" viewBox="0 0 20 20" fill="none"><path d="M4 10h12m-5-5 5 5-5 5"/></svg>

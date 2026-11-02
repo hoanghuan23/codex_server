@@ -19,3 +19,5 @@ Từ thư mục skill, caller kiểm tra bằng:
 `python3 scripts/validate.py --result <output-directory>`
 
 Bộ kiểm tra xác nhận đủ file, liên kết HTML/CSS/JS và cú pháp JS nếu có Node. Khi có công cụ trình duyệt, kiểm thêm bản đồ render, kéo/zoom, popup, bộ lọc và màn hình hẹp. Kiểm tra tĩnh không xác nhận dữ liệu ghép đúng hoặc tài nguyên mạng tải thành công.
+
+Với Polygon, kiểm thêm tiêu chí tương tác trong [polygon.md](prompts/polygon.md#4-kiểm-tra-tương-tác-trước-khi-trả-kết-quả): bấm phần tô mở đúng thông tin; chọn kết quả tìm kiếm định vị và vẽ viền theo geometry thật; viền tồn tại khi rời chuột/đổi chỉ tiêu, chuyển hoặc xóa đúng khi thay lựa chọn/đóng popup. Nếu chưa chạy thử trên trình duyệt, không báo các hành vi này đã được kiểm chứng chỉ vì validator thành công.

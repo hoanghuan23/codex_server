@@ -87,6 +87,9 @@ def parse_classification(raw, document):
             raise PipelineError('AI chưa chọn đúng sheet dữ liệu trong Excel. Hãy thử chạy lại.')
     elif not sheets and result.selectedSheet is not None:
         raise PipelineError('AI trả tên sheet cho file không phải Excel.')
+    selected_sheet = document.data.get('source', {}).get('sheetName')
+    if selected_sheet and result.selectedChart is not None and result.selectedSheet != selected_sheet:
+        raise PipelineError('AI chọn khác sheet bạn đã chỉ định. Hãy thử chạy lại.')
     return result
 
 

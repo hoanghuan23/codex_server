@@ -27,17 +27,21 @@ Terminal thứ hai, chạy giao diện:
 
 ```bash
 source .venv/bin/activate
-python3 -m uvicorn ui_server:app --host 127.0.0.1 --port 8001
+python3 -m uvicorn ui_server:app --host 127.0.0.1 --port 8001 --reload
 ```
 
 Mở **http://127.0.0.1:8001**, chọn file và nhấn **Tạo bản đồ**. Nếu đã có API chạy ở máy khác, đặt `CODEX_API_URL` tới `/analyze` của API đó; chỉ cần chạy terminal giao diện. Máy API cần có phiên bản skill trong repo này để hiểu `input.sheets` và mặc định nền Liberty.
+
+Với Excel, chọn file sẽ hiển thị một danh sách **Chọn sheet**, chỉ gồm tên các sheet trong file. Chọn sheet muốn dùng rồi nhấn **Tạo bản đồ**.
+
+Đọc tên sheet chạy local, chưa gọi AI. Sheet đã chọn được giữ làm dữ liệu chính trong cả hai bước AI; các sheet khác chỉ cung cấp tọa độ/danh mục/ngữ cảnh khi có khóa rõ ràng. Mở giao diện tại cổng **8001**; cổng 8000 là API phân tích. Nếu gặp “Not Found” khi đọc sheet, khởi động lại `ui_server` bằng lệnh trên rồi tải lại trang; `--reload` tự nạp thay đổi mã Python trong những lần chỉnh sửa sau.
 
 Chạy một worker cho giao diện; hàng đợi/trạng thái nằm trong bộ nhớ của tiến trình. Mỗi lần chỉ chạy một tác vụ, không cần frontend framework hay bước build.
 
 ## Dữ liệu và kết quả
 
 - `.geojson`, `.json`: chỉ chấp nhận GeoJSON hợp lệ, WGS84 theo `[lng, lat]`. Không tự chuyển hệ tọa độ.
-- `.xlsx`: đọc tất cả sheet không rỗng, giữ hàng gốc gồm tiêu đề và ghi chú. AI chọn một sheet chính; sheet tọa độ/danh mục chỉ hỗ trợ khi có khóa liên kết rõ ràng. Công thức dùng giá trị cache đã lưu trong Excel, không chạy tính toán lại.
+- `.xlsx`: đọc tất cả sheet không rỗng, giữ hàng gốc gồm tiêu đề và ghi chú. UI cho chọn tên sheet trước khi chạy; caller cũ không gửi lựa chọn thì AI vẫn tự chọn sheet. Sheet tọa độ/danh mục chỉ hỗ trợ khi có khóa liên kết rõ ràng. Công thức dùng giá trị cache đã lưu trong Excel, không chạy tính toán lại.
 - `.docx`: đọc văn bản và bảng theo thứ tự trong tài liệu; chưa hỗ trợ `.doc`, OCR hoặc nội dung chỉ có trong ảnh.
 - `.txt`: UTF-8, hỗ trợ BOM. Chưa hỗ trợ `.xls` hoặc nhiều file/layer độc lập.
 
@@ -69,7 +73,8 @@ Thư mục kết quả vẫn còn sau khi khởi động lại, nhưng V1 không
 
 ## API giao diện
 
-- `POST /api/jobs`: multipart với trường `file`, trả HTTP 202 và `{job_id}`. Trả 409 khi có tác vụ đang chạy, kèm `detail.job_id` để tiếp tục theo dõi.
+- `POST /api/excel/sheets`: multipart `file` (`.xlsx`), chỉ trả tên sheet dạng `{"sheets":["Tên sheet 1","Tên sheet 2"]}`. Không trích dữ liệu hoặc gọi AI.
+- `POST /api/jobs`: multipart với trường `file`, trả HTTP 202 và `{job_id}`. Excel có thể gửi thêm `selected_sheet`; server kiểm tra và đặt `input.source.sheetName` để giữ sheet người dùng chọn. Bỏ trường này để dùng luồng tự chọn cũ. Trả 409 khi có tác vụ đang chạy, kèm `detail.job_id` để tiếp tục theo dõi.
 - `GET /api/jobs/{job_id}`: trả `status`, `message`, `analysis`, `error`, `output_dir`, `preview_url`. Trạng thái: `reading`, `analyzing`, `generating`, `validating`, `completed`, `needs_data`, `failed`.
 - `GET /outputs/{job_id}/{filename}`: chỉ phục vụ `index.html`, `style.css`, `app.js` của tác vụ hoàn tất trong phiên hiện tại.
 

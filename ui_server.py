@@ -8,11 +8,11 @@ from pathlib import Path
 from uuid import uuid4
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from map_input import SUPPORTED_EXTENSIONS, read_input
+from map_input import SUPPORTED_EXTENSIONS, excel_sheet_names, read_input, select_excel_sheet
 from map_pipeline import BASE, CHART_LABELS, MapClient, PipelineError, Settings, publish_output
 
 
@@ -51,18 +51,60 @@ def create_app(settings=None):
 
     @app.get('/', include_in_schema=False)
     async def index():
-        return FileResponse(STATIC / 'index.html', media_type='text/html')
+        return FileResponse(STATIC / 'index.html', media_type='text/html', headers={'Cache-Control': 'no-store'})
 
     @app.get('/ui/{filename}', include_in_schema=False)
     async def static_file(filename: str):
         if filename not in ('app.js', 'style.css'):
             raise HTTPException(404, 'Không tìm thấy tài nguyên.')
-        return FileResponse(STATIC / filename, media_type=WEB_FILES[filename])
+        return FileResponse(STATIC / filename, media_type=WEB_FILES[filename], headers={'Cache-Control': 'no-store'})
 
-    async def run_job(job, directory, path):
+    async def store_upload(file):
+        directory = None
+        try:
+            filename = (file.filename or '').replace('\\', '/').rsplit('/', 1)[-1]
+            extension = Path(filename).suffix.lower()
+            if extension not in SUPPORTED_EXTENSIONS:
+                raise HTTPException(400, 'Chỉ hỗ trợ .geojson, .json (GeoJSON), .xlsx, .docx và .txt.')
+            directory = Path(tempfile.mkdtemp(prefix='map-upload-'))
+            path = directory / ('input' + extension)
+            size = 0
+            with path.open('wb') as target:
+                while chunk := await file.read(1024 * 1024):
+                    size += len(chunk)
+                    if size > settings.max_upload_bytes:
+                        limit = settings.max_upload_bytes / (1024 * 1024)
+                        raise HTTPException(413, f'File vượt giới hạn {limit:g} MB.')
+                    target.write(chunk)
+            if size == 0:
+                raise HTTPException(400, 'File tải lên rỗng.')
+            return filename, directory, path
+        except BaseException:
+            if directory is not None:
+                shutil.rmtree(directory, ignore_errors=True)
+            raise
+        finally:
+            await file.close()
+
+    @app.post('/api/excel/sheets')
+    async def list_excel_sheets(file: UploadFile = File(...)):
+        _, directory, path = await store_upload(file)
+        try:
+            if path.suffix != '.xlsx':
+                raise ValueError('Chỉ hỗ trợ đọc tên sheet đối với file .xlsx.')
+            return {'sheets': await asyncio.to_thread(excel_sheet_names, path)}
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        finally:
+            shutil.rmtree(directory, ignore_errors=True)
+
+    async def run_job(job, directory, path, selected_sheet=None):
         nonlocal active_id
         try:
             document = await asyncio.to_thread(read_input, path, job['file_name'])
+            document = select_excel_sheet(document, selected_sheet)
+            if selected_sheet:
+                job['selection'] = {'sheet': selected_sheet}
             job.update(status='analyzing', message='Đang phân tích và chọn loại bản đồ…')
             client = MapClient(settings)
             analysis = await asyncio.to_thread(client.classify, document)
@@ -95,7 +137,7 @@ def create_app(settings=None):
             lock.release()
 
     @app.post('/api/jobs', status_code=202)
-    async def create_job(file: UploadFile = File(...)):
+    async def create_job(file: UploadFile = File(...), selected_sheet: str | None = Form(None)):
         nonlocal task, active_id
         if lock.locked():
             await file.close()
@@ -104,34 +146,18 @@ def create_app(settings=None):
         if not settings.api_token:
             await file.close()
             raise HTTPException(503, 'Thiếu CODEX_API_TOKEN trong môi trường hoặc file .env.')
-        filename = (file.filename or '').replace('\\', '/').rsplit('/', 1)[-1]
-        extension = Path(filename).suffix.lower()
-        if extension not in SUPPORTED_EXTENSIONS:
-            await file.close()
-            raise HTTPException(400, 'Chỉ hỗ trợ .geojson, .json (GeoJSON), .xlsx, .docx và .txt.')
         await lock.acquire()
         directory = None
         handed_off = False
         try:
-            directory = Path(tempfile.mkdtemp(prefix='map-upload-'))
-            path = directory / ('input' + extension)
-            size = 0
-            with path.open('wb') as target:
-                while chunk := await file.read(1024 * 1024):
-                    size += len(chunk)
-                    if size > settings.max_upload_bytes:
-                        limit = settings.max_upload_bytes / (1024 * 1024)
-                        raise HTTPException(413, f'File vượt giới hạn {limit:g} MB.')
-                    target.write(chunk)
-            if size == 0:
-                raise HTTPException(400, 'File tải lên rỗng.')
+            filename, directory, path = await store_upload(file)
             job_id = uuid4().hex[:12]
             job = {'job_id': job_id, 'file_name': filename, 'status': 'reading',
                    'message': 'Đang đọc dữ liệu trong file…', 'analysis': None,
                    'chart_label': None, 'output_dir': None, 'preview_url': None, 'error': None}
             jobs[job_id] = job
             active_id = job_id
-            task = asyncio.create_task(run_job(job, directory, path))
+            task = asyncio.create_task(run_job(job, directory, path, selected_sheet))
             handed_off = True
             return {'job_id': job_id}
         finally:

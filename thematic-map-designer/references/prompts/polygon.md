@@ -22,8 +22,22 @@
 ## 3. Tương tác và chú giải
 
 - Tự chọn tìm khu vực, lọc nhóm, chọn chỉ tiêu hoặc kỳ quan sát khi dữ liệu hỗ trợ; mọi điều khiển nằm trên bản đồ.
+- Bắt sự kiện trên lớp `fill` của dữ liệu, hoặc hit-test bằng `queryRenderedFeatures` giới hạn đúng layer đã tồn tại. Toàn bộ phần tô của vùng phải bấm/chạm được, không chỉ đường viền hay nhãn; vùng thiếu giá trị vẫn mở tên vùng và trạng thái thiếu dữ liệu. Dùng khóa trong `feature.properties` để tra bản ghi; dùng `feature.id` chỉ khi đã bảo đảm khớp với khóa cấu hình nguồn.
+- Có ba trạng thái rõ ràng: bình thường, hover và selected. Hover đổi con trỏ và nhấn nhẹ vùng; rời chuột chỉ xóa hover, không xóa selected. Selected có viền tương phản, dày khoảng 3–4 px, rõ trên cả vùng màu sáng/tối và nền bản đồ; có thể thêm viền sáng bên dưới. Giữ màu tô theo chỉ tiêu để vẫn đối chiếu được chú giải.
+- Dựng lớp `line` riêng cho viền selected, nằm trên các lớp tô và viền vùng thông thường để không bị vùng lân cận che. Ưu tiên lọc theo khóa ổn định trong `properties`, ví dụ `map.setFilter('regions-selected', ['==', ['get', 'regionId'], selectedId])`; thuộc tính và ID layer trong ví dụ phải được thay bằng khóa thực tế. Viền phải đi theo geometry Polygon/MultiPolygon thật, gồm các phần rời, không vẽ hình chữ nhật bounds, vòng tròn hoặc marker thay ranh giới. Nếu dùng `feature-state` thì cấu hình ID theo prompt chung và áp lại state sau khi thay nguồn khi cần.
+- Chọn kết quả tìm kiếm phải gọi cùng hàm chọn vùng như click: bỏ chọn vùng cũ, cập nhật khóa selected, cập nhật viền và popup, rồi `fitBounds` theo geometry với padding tránh các overlay và mức zoom hợp lý. Tìm tên hỗ trợ không dấu, không phân biệt hoa/thường; nhiều vùng trùng tên phải kèm vùng cha để chọn đúng, không tự lấy kết quả đầu khi còn mơ hồ. Không lọc ẩn toàn bộ các vùng còn lại chỉ để biểu thị tìm kiếm.
+- Viền selected tồn tại sau khi chuột rời vùng, kéo/zoom hoặc đổi chỉ tiêu/kỳ nếu vùng vẫn còn trong dữ liệu đang xem. Chọn vùng khác phải chuyển viền và popup sang vùng đó. Đóng popup hoặc nút “Toàn vùng” xóa lựa chọn và viền đồng bộ; bộ lọc loại vùng đang chọn thì đóng popup và bỏ chọn.
 - Khi đổi chỉ tiêu/kỳ, cập nhật màu vùng, chú giải, đơn vị và popup. Dùng cùng thang khi cần so sánh các kỳ; nếu tính lại theo bộ lọc thì thể hiện rõ phạm vi thang hiện tại.
 - Popup dùng tên/mã vùng, chỉ tiêu, giá trị, đơn vị, kỳ và ghi chú thực tế. Hiển thị rõ ô thiếu dữ liệu.
 - Báo gọn các vùng không khớp hoặc có tên mơ hồ trong overlay thu gọn, dựa trên kết quả ghép thực.
+
+## 4. Kiểm tra tương tác trước khi trả kết quả
+
+Nếu có trình duyệt, kiểm tra các hành vi dưới đây trên bản đồ đã tải dữ liệu; nếu không có thì rà soát luồng sự kiện, khóa và thứ tự layer trong mã, không coi kiểm tra cú pháp là đã kiểm chứng tương tác:
+
+- Bấm phần trong của ít nhất hai vùng: mỗi lần mở đúng tên và số liệu của vùng đó, đồng thời chuyển viền selected; thử cả vùng có khóa chuỗi và ID `0` nếu dữ liệu có.
+- Tìm rồi chọn một vùng: thấy đầy đủ ranh giới nổi bật, camera tới đúng vùng và popup trùng với khi bấm vùng đó. Các vùng lân cận vẫn hiển thị để đối chiếu.
+- Rời chuột, kéo/zoom và đổi chỉ tiêu: viền vùng đã chọn còn rõ, popup và chú giải cập nhật đúng. Chọn vùng khác hoặc đóng popup không để lại viền cũ hay phát sinh thao tác đóng popup cũ xóa lựa chọn mới.
+- Thử từ khóa không khớp, vùng thiếu giá trị/geometry và thao tác chạm trên màn hình hẹp: báo đúng trạng thái, không lỗi JS và overlay không chặn bản đồ ngoài phần panel.
 
 Tạo bản đồ bằng lớp fill/line phù hợp của MapLibre. Đầu ra tuân thủ JSON ba file trong prompt chung.
