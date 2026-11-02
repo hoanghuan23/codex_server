@@ -16,6 +16,7 @@ load_dotenv()
 app = FastAPI()
 
 API_TOKEN = os.environ["CODEX_API_TOKEN"]
+CODEX_MODEL = os.getenv("CODEX_MODEL", "gpt-5.6-luna")
 SKILLS = {
     "thematic-map-designer": Path(os.getenv(
         "SKILL_DIR", str(Path(__file__).resolve().parent / "thematic-map-designer"))).resolve(),
@@ -91,6 +92,8 @@ async def analyze(
         process = await asyncio.create_subprocess_exec(
             *command,
             "exec",
+            "--model",
+            CODEX_MODEL,
             "--skip-git-repo-check",
             "--sandbox",
             "read-only",

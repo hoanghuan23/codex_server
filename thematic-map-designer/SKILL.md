@@ -32,9 +32,13 @@ Không chọn Line chỉ vì có nhiều tọa độ/ngày; không chọn Arc Fl
 
 Khi vẽ nhiều lớp, giữ mỗi ID đúng một lần, sắp từ dưới lên: vùng/lưới → đường/cung → điểm/nhãn; thiếu căn cứ thì giữ thứ tự đầu vào trong cùng nhóm, không suy geometry từ tên file.
 
+## Nguồn ranh giới hành chính
+
+Ưu tiên geometry được cấp trong input. Nếu cần bổ sung ranh giới tỉnh/thành phố hoặc cấp hành chính khác, dùng kho `../administrative_division/` tính từ thư mục chứa `SKILL.md`, theo mẫu `<ALPHA3>/<ALPHA3>_ADM<level>.geojson`. Không tính đường dẫn từ working directory vì caller có thể chạy trong thư mục tạm. Đọc mục kho cục bộ trong [references/online-geography.md](references/online-geography.md) để chọn quốc gia, cấp và ghép vùng. Chỉ tra mạng cho phần không có ranh giới cục bộ phù hợp; đủ dữ liệu trong kho thì không tra cứu lại. `webOptions.allowOnlineLookup=false` vẫn cho phép đọc kho cục bộ, nhưng không được dùng mạng để bù phần thiếu.
+
 ## Tài liệu dùng khi cần
 
 - Cần hiểu cấu trúc records, sheet Excel, GeoJSON, profile hoặc tùy chọn caller: [references/input-contract.md](references/input-contract.md).
 - Cần popup có ảnh/biểu đồ, nhiều chỉ tiêu hoặc chú giải phức tạp: [references/presentation.md](references/presentation.md).
-- Cần tìm hoặc ghép ranh giới, tọa độ, mạng tuyến công khai: [references/online-geography.md](references/online-geography.md). Với `webOptions.allowOnlineLookup=false`, không tra cứu hay tự thêm tài nguyên mạng mới.
+- Cần bổ sung hoặc ghép ranh giới, tọa độ, mạng tuyến: [references/online-geography.md](references/online-geography.md). Ranh giới hành chính ưu tiên kho `administrative_division` trước mạng; với `webOptions.allowOnlineLookup=false`, chỉ dùng tài nguyên được cấp hoặc cục bộ.
 - Cần lưu hoặc kiểm tra JSON mã nguồn ba file ở caller: [references/web-output.md](references/web-output.md). Môi trường chỉ đọc vẫn trả JSON mã nguồn như bình thường.

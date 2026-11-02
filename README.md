@@ -66,10 +66,13 @@ Thư mục kết quả vẫn còn sau khi khởi động lại, nhưng V1 không
 | --- | --- |
 | `CODEX_API_URL` | `http://127.0.0.1:8000/analyze` |
 | `CODEX_API_TOKEN` | Bắt buộc khi tạo tác vụ |
+| `CODEX_MODEL` | `gpt-5.6-luna`; server truyền rõ model cho cả bước phân tích và dựng bản đồ |
 | `CODEX_TIMEOUT` | 900 giây cho mỗi lời gọi AI |
 | `MAP_OUTPUT_DIR` | Thư mục dự án |
 | `MAP_MAX_UPLOAD_MB` | 10 MB; có thể tăng cho dữ liệu lớn |
 | `SKILL_DIR` | `thematic-map-designer` trong dự án |
+
+Đổi model bằng `CODEX_MODEL` trong môi trường hoặc `.env` trên máy chạy API `/analyze`, rồi khởi động lại API. Cấu hình này được truyền qua `codex exec --model`, ưu tiên hơn model mặc định của Codex CLI.
 
 ## API giao diện
 
