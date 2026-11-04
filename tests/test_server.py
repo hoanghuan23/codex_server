@@ -39,6 +39,10 @@ class ServerTests(unittest.IsolatedAsyncioTestCase):
                                      side_effect=execute)
         self.execute = execute_patch.start()
         self.addCleanup(execute_patch.stop)
+        executable_patch = patch.object(server, 'resolve_codex_executable',
+                                        return_value='codex-test.exe')
+        self.executable = executable_patch.start()
+        self.addCleanup(executable_patch.stop)
         token_patch = patch.object(server, 'API_TOKEN', 'test-token')
         token_patch.start()
         self.addCleanup(token_patch.stop)
@@ -55,78 +59,73 @@ class ServerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.json(), {'success': True, 'result': 'Xin chào'})
         command = self.execute.call_args.args
         self.assertEqual(command, (
-            'codex', '--search', 'exec', '--model', model,
+            'codex-test.exe', '--search', 'exec', '--model', model,
             '--skip-git-repo-check', '--sandbox', 'read-only', '-'))
         self.assertEqual(self.execute.call_args.kwargs['stdin'],
                          server.asyncio.subprocess.PIPE)
         self.process.communicate.assert_awaited_once_with(input=prompt.encode('utf-8'))
         self.assertFalse(self.workdirs[0].exists())
 
-    async def test_templates_include_authored_styles_and_typography_without_codex(self):
+    async def test_templates_list_and_fetch_mau_01_files_without_codex(self):
         response = await self.client.get('/templates', headers={'X-API-Key': 'test-token'})
         self.assertEqual(response.status_code, 200)
-        templates = response.json()['templates']
-        self.assertTrue(templates)
-        for item in templates:
-            authored = server.load_template(item['id'], item['theme'])
-            self.assertEqual(item['styles'], authored['styles'])
-            self.assertEqual(item['typography'], authored['typography'])
-            self.assertIn('name', item)
-            self.assertIn('description', item)
+        self.assertEqual(response.json(), {'templates': [
+            {'id': 'mau_01', 'name': 'Bản đồ mẫu 01'}
+        ]})
+        response = await self.client.get('/templates/mau_01',
+                                         headers={'X-API-Key': 'test-token'})
+        self.assertEqual(response.status_code, 200)
+        template = response.json()
+        self.assertEqual(set(template), {'template', 'html', 'css', 'js'})
+        self.assertEqual(template['template'], 'mau_01')
+        for field, filename in (('html', 'index.html'),
+                                ('css', 'style.css'), ('js', 'app.js')):
+            self.assertEqual(template[field],
+                             (BASE / 'templates' / 'mau_01' / filename)
+                             .read_text(encoding='utf-8'))
         self.execute.assert_not_called()
 
-    async def test_templates_use_new_structure_without_manifest(self):
+    async def test_template_loader_uses_configured_directory(self):
         config = {
-            'defaultTemplate': 'vnexpress',
-            'defaultTheme': 'light',
+            'defaultTemplate': 'mau_01',
             'templates': {
-                'vnexpress': {
-                    'name': 'VnExpress',
-                    'path': 'vnexpress',
-                    'themes': ['light', 'dark'],
+                'mau_01': {
+                    'name': 'Bản đồ mẫu 01',
+                    'path': 'mau_01',
                 },
             },
         }
-        typography = {'fontFamily': 'Arial, Helvetica, sans-serif'}
-        styles = {
-            'light': {'colors': {'background': '#FFFFFF', 'text': '#222222'}},
-            'dark': {'colors': {'background': '#1C1C26', 'text': '#E5E7EB'}},
-        }
+        assets = {'html': '<main id="map"></main>',
+                  'css': '#map { height: 100%; }',
+                  'js': 'const map = true;'}
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            folder = root / 'vnexpress'
+            folder = root / 'mau_01'
             folder.mkdir()
-            files = {'config.json': config, 'vnexpress/typography.json': typography}
-            files.update({f'vnexpress/{theme}.json': value
-                          for theme, value in styles.items()})
-            for filename, value in files.items():
-                (root / filename).write_text(json.dumps(value), encoding='utf-8')
+            (root / 'config.json').write_text(json.dumps(config), encoding='utf-8')
+            for field, filename in (('html', 'index.html'),
+                                    ('css', 'style.css'), ('js', 'app.js')):
+                (folder / filename).write_text(assets[field], encoding='utf-8')
 
             with patch.object(template_service, 'TEMPLATE_DIR', root):
                 self.assertEqual(server.load_template(), {
-                    'template': 'vnexpress', 'theme': 'light',
-                    'typography': typography, 'styles': styles['light'],
+                    'template': 'mau_01', **assets,
                 })
                 response = await self.client.get(
-                    '/templates', headers={'X-API-Key': 'test-token'})
+                    '/templates/mau_01', headers={'X-API-Key': 'test-token'})
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {'templates': [
-            {
-                'id': 'vnexpress', 'theme': theme,
-                'name': f'VnExpress - {theme.capitalize()}',
-                'typography': typography, 'styles': value,
-                'description': (f"Arial, nền {value['colors']['background']}, "
-                                f"chữ {value['colors']['text']}"),
-            }
-            for theme, value in styles.items()
-        ]})
+        self.assertEqual(response.json(), {'template': 'mau_01', **assets})
         self.execute.assert_not_called()
 
     async def test_templates_require_authentication(self):
         for headers in ({}, {'X-API-Key': 'incorrect-token'}):
-            response = await self.client.get('/templates', headers=headers)
-            self.assertEqual(response.status_code, 401)
+            for path in ('/templates', '/templates/mau_01'):
+                response = await self.client.get(path, headers=headers)
+                self.assertEqual(response.status_code, 401)
+        response = await self.client.get('/templates/khong_co',
+                                         headers={'X-API-Key': 'test-token'})
+        self.assertEqual(response.status_code, 404)
         self.execute.assert_not_called()
 
     async def test_large_prompt_is_sent_in_full_through_stdin(self):
@@ -155,6 +154,7 @@ class ServerTests(unittest.IsolatedAsyncioTestCase):
                         {'prompt': 'Hello', 'model': ''},
                         {'prompt': 'Hello', 'model': None},
                         {'prompt': 'Hello', 'model': 123},
+                        {'prompt': 'Hello', 'model': 'x" & whoami'},
                         {'prompt': 'Hello', 'model': 'client-selected-model',
                          'unexpected': {}}):
             with self.subTest(payload=payload):
@@ -168,6 +168,56 @@ class ServerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.json(), {'detail': 'Codex execution failed'})
         self.assertFalse(self.workdirs[0].exists())
+
+    async def test_missing_codex_returns_service_error(self):
+        self.executable.side_effect = server.HTTPException(
+            503, 'Codex CLI not found; set CODEX_CLI_PATH or PATH')
+        response = await self.post({'prompt': 'Hello', 'model': 'client-selected-model'})
+        self.assertEqual(response.status_code, 503)
+        self.execute.assert_not_called()
+        self.assertEqual(response.json()['detail'],
+                         'Codex CLI not found; set CODEX_CLI_PATH or PATH')
+
+    async def test_codex_spawn_failure_returns_service_error(self):
+        self.execute.side_effect = FileNotFoundError('codex.cmd')
+        response = await self.post({'prompt': 'Hello', 'model': 'client-selected-model'})
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()['detail'],
+                         'Could not start Codex CLI; check CODEX_CLI_PATH or PATH')
+        self.execute.assert_awaited_once()
+
+
+class CodexExecutableTests(unittest.TestCase):
+    def test_windows_uses_npm_command(self):
+        with patch.object(server.os, 'name', 'nt'), \
+                patch.object(server.shutil, 'which',
+                             side_effect=lambda name: {
+                                 'codex.cmd': r'C:\\npm\\codex.cmd',
+                             }.get(name)) as which, \
+                patch.dict(server.os.environ, {'CODEX_CLI_PATH': ''}):
+            self.assertEqual(server.resolve_codex_executable(),
+                             r'C:\\npm\\codex.cmd')
+        which.assert_called_once_with('codex.cmd')
+
+    def test_windows_does_not_fall_back_to_exe(self):
+        with patch.object(server.os, 'name', 'nt'), \
+                patch.object(server.shutil, 'which',
+                             side_effect=lambda name: {
+                                 'codex.exe': r'C:\\extension\\codex.exe',
+                             }.get(name)) as which, \
+                patch.dict(server.os.environ, {'CODEX_CLI_PATH': ''}):
+            with self.assertRaises(server.HTTPException) as error:
+                server.resolve_codex_executable()
+        self.assertEqual(error.exception.status_code, 503)
+        which.assert_called_once_with('codex.cmd')
+
+    def test_configured_path_takes_priority(self):
+        with patch.dict(server.os.environ,
+                        {'CODEX_CLI_PATH': r'C:\\custom\\codex.cmd'}), \
+                patch.object(server.shutil, 'which') as which:
+            self.assertEqual(server.resolve_codex_executable(),
+                             r'C:\\custom\\codex.cmd')
+        which.assert_not_called()
 
 
 if __name__ == '__main__':

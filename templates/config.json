@@ -1,62 +1,13 @@
 {
-    "defaultTemplate": "vnexpress-light",
-    "defaultTheme": "light",
+    "defaultTemplate": "mau_01",
     "templates": {
-        "vnexpress-light": {
-            "name": "VnExpress",
-            "path": "vnexpress-light",
-            "themes": [
-                "light"
-            ]
+        "mau_01": {
+            "name": "Bản đồ mẫu 01",
+            "path": "mau_01"
         },
-        "vnexpress-dark": {
-            "name": "VnExpress",
-            "path": "vnexpress-dark",
-            "themes": [
-                "dark"
-            ]
-        },
-        "soha": {
-            "name": "Soha",
-            "path": "soha",
-            "themes": [
-                "light"
-            ]
-        },
-        "chinhphu": {
-            "name": "Chinhphu",
-            "path": "chinhphu",
-            "themes": [
-                "light"
-            ]
-        },
-        "dantri": {
-            "name": "Dantri",
-            "path": "dantri",
-            "themes": [
-                "light"
-            ]
-        },
-        "laodong": {
-            "name": "Laodong",
-            "path": "laodong",
-            "themes": [
-                "light"
-            ]
-        },
-        "tuoitre": {
-            "name": "Tuoitre",
-            "path": "tuoitre",
-            "themes": [
-                "light"
-            ]
-        },
-        "thanhnien": {
-            "name": "Thanhnien",
-            "path": "thanhnien",
-            "themes": [
-                "light"
-            ]
+        "mau_02": {
+            "name": "Bản đồ mẫu 02",
+            "path": "mau_02"
         }
     }
 }

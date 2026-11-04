@@ -14,11 +14,10 @@ def load_config():
     return read_json(TEMPLATE_DIR / "config.json")
 
 
-def load_template(template_id=None, theme=None):
+def load_template(template_id=None):
     config = load_config()
 
     template_id = template_id or config["defaultTemplate"]
-    theme = theme or config["defaultTheme"]
 
     templates = config["templates"]
 
@@ -27,17 +26,18 @@ def load_template(template_id=None, theme=None):
 
     info = templates[template_id]
 
-    if theme not in info["themes"]:
-        raise ValueError("Theme không hỗ trợ")
-
     folder = (TEMPLATE_DIR / info["path"]).resolve()
 
     if not folder.is_relative_to(TEMPLATE_DIR.resolve()):
         raise ValueError("Đường dẫn template không hợp lệ")
 
+    files = {name: folder / filename for name, filename in (
+        ("html", "index.html"), ("css", "style.css"), ("js", "app.js")
+    )}
+    if any(not path.is_file() for path in files.values()):
+        raise ValueError("Template thiếu file HTML, CSS hoặc JS")
+
     return {
         "template": template_id,
-        "theme": theme,
-        "typography": read_json(folder / "typography.json"),
-        "styles": read_json(folder / f"{theme}.json")
+        **{name: path.read_text(encoding="utf-8") for name, path in files.items()}
     }

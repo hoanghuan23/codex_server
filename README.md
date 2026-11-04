@@ -18,8 +18,11 @@ cp .env.example .env
 | Biến môi trường | Ý nghĩa | Mặc định |
 | --- | --- | --- |
 | `CODEX_API_TOKEN` | Token xác thực cho API | Bắt buộc |
+| `CODEX_CLI_PATH` | Đường dẫn đầy đủ tới CLI dùng để chạy yêu cầu | Tự tìm trong `PATH` |
 
 Biến môi trường của tiến trình được ưu tiên hơn `.env`. Khởi động lại server sau khi đổi cấu hình.
+
+Trên Windows, server mặc định chỉ dùng `codex.cmd` của bản cài qua npm; không tự chuyển sang `codex.exe`. Nếu Uvicorn không tìm thấy CLI, đặt `CODEX_CLI_PATH` trong `.env` thành đường dẫn đầy đủ tới `codex.cmd` rồi khởi động lại server. Kiểm tra đăng nhập trong cùng môi trường chạy server bằng `codex.cmd login status`; nếu báo chưa đăng nhập, chạy `codex.cmd login` tại đó.
 
 ## Chạy server
 
@@ -59,24 +62,20 @@ Mỗi yêu cầu chạy Codex trong thư mục tạm riêng, dùng sandbox `read
 
 ## Template
 
-`GET /templates` yêu cầu header `X-API-Key` và trả các theme cùng `styles`, `typography` từ file cấu hình:
+`GET /templates` yêu cầu header `X-API-Key` và trả danh sách mẫu. Gọi `GET /templates/mau_01` với cùng header để lấy nội dung ba file `html`, `css`, `js`:
 
 ```text
 templates/
   config.json
-  vnexpress-light/
-    typography.json
-    light.json
-  vnexpress-dark/
-    typography.json
-    dark.json
+  mau_01/
+    index.html
+    style.css
+    app.js
 ```
 
-`config.json` khai báo `defaultTemplate`, `defaultTheme` và danh sách `templates`; mỗi template có `name`, `path`, `themes`. Loader đọc `typography.json` dùng chung và `<theme>.json` tương ứng, không cần `manifest.json`.
+`config.json` khai báo `defaultTemplate` và danh sách `templates`; mỗi mẫu có `name` và `path`. ID mặc định là `mau_01`. Loader chỉ đọc `index.html`, `style.css` và `app.js` trong thư mục mẫu, không dùng theme hay typography.
 
-VnExpress được tách thành hai template có ID `vnexpress-light` (theme `light`) và `vnexpress-dark` (theme `dark`), mỗi thư mục có `typography.json` riêng để chỉnh font độc lập. Template mặc định là `vnexpress-light`, theme mặc định là `light`. Client dùng hai ID mới khi chọn template.
-
-Thư mục `templates/` hiện được bỏ qua trong Git, nên cần sao chép các file này khi triển khai. Sau khi cập nhật mã Python, dừng tiến trình Uvicorn cũ và chạy lại bằng lệnh ở trên. Nếu vẫn gặp lỗi tìm `manifest.json`, kiểm tra đường dẫn mã trong traceback và thư mục chạy server để xác định bản cũ đang được nạp.
+Sau khi cập nhật mã Python, dừng tiến trình Uvicorn cũ và chạy lại bằng lệnh ở trên để nạp API mới.
 
 ## Kiểm thử
 
