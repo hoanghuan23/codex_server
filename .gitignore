@@ -5,8 +5,5 @@ __pycache__/
 
 .env
 
-# dữ liệu khu vực tỉnh/thành phố
-administrative_division/
-
-# dữ liệu test
-output_*/
+# dữ liệu templates
+templates/

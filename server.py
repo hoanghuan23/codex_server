@@ -8,19 +8,21 @@ import tempfile
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
+from template_service import load_config, load_template
 
 load_dotenv()
 app = FastAPI()
 
 API_TOKEN = os.environ["CODEX_API_TOKEN"]
-CODEX_MODEL = os.getenv("CODEX_MODEL", "gpt-5.6-luna")
 
 
 class Request(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     prompt: str = Field(min_length=1)
-
+    model: str = Field(min_length=1)
+    template: str = "vnexpress"
+    theme: str = "light"
 
 @app.post("/analyze")
 async def analyze(
@@ -38,7 +40,7 @@ async def analyze(
             "--search",
             "exec",
             "--model",
-            CODEX_MODEL,
+            data.model,
             "--skip-git-repo-check",
             "--sandbox",
             "read-only",
@@ -61,3 +63,39 @@ async def analyze(
             "success": True,
             "result": stdout.decode(errors="replace")
         }
+
+@app.get("/templates")
+async def list_templates(
+    x_api_key: str | None = Header(default=None)
+):
+    if x_api_key != API_TOKEN:
+        raise HTTPException(401, "Unauthorized")
+
+    config = load_config()
+    templates = []
+
+    for template_id, info in config["templates"].items():
+        for theme in info["themes"]:
+            # Serve the authored files alongside catalog metadata; AI only
+            # recommends data presentation and never supplies these styles.
+            try:
+                template = load_template(template_id, theme)
+            except ValueError as exc:
+                raise HTTPException(400, str(exc)) from exc
+            styles = template["styles"]
+            typography = template["typography"]
+
+            templates.append({
+                "id": template_id,
+                "theme": theme,
+                "name": f"{info['name']} - {theme.capitalize()}",
+                "styles": styles,
+                "typography": template["typography"],
+                "description": (
+                    f"{typography['fontFamily'].split(',')[0]}, "
+                    f"nền {styles['colors']['background']}, "
+                    f"chữ {styles['colors']['text']}"
+                )
+            })
+
+    return {"templates": templates}
