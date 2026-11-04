@@ -1,0 +1,18 @@
+{
+  "fontFamily": "Roboto, Helvetica, Arial, sans-serif",
+  "headingFontFamily": "Roboto, Helvetica, Arial, sans-serif",
+  "sizes": {
+    "body": "14px",
+    "popup": "14px",
+    "legend": "13px",
+    "label": "14px",
+    "heading": "25px",
+    "title": "32px"
+  },
+  "weights": {
+    "normal": 400,
+    "semibold": 500,
+    "bold": 700
+  },
+  "lineHeight": 1.43
+}

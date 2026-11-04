@@ -1,0 +1,14 @@
+{
+  "colors": {
+    "background": "#FFFFFF",
+    "text": "#333333",
+    "textSecondary": "#3B4E68",
+    "border": "#DDDDDD",
+    "surface": "#F4F6F9",
+    "accent": "#C8102E"
+  },
+  "layout": {
+    "borderRadius": "12px",
+    "spacing": "12px"
+  }
+}

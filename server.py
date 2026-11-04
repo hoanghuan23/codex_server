@@ -21,7 +21,7 @@ class Request(BaseModel):
 
     prompt: str = Field(min_length=1)
     model: str = Field(min_length=1)
-    template: str = "vnexpress"
+    template: str = "vnexpress-light"
     theme: str = "light"
 
 @app.post("/analyze")

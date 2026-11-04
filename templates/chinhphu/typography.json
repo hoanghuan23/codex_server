@@ -1,0 +1,18 @@
+{
+  "fontFamily": "Merriweather, Georgia, serif",
+  "headingFontFamily": "Merriweather, Georgia, serif",
+  "sizes": {
+    "body": "14px",
+    "popup": "12px",
+    "legend": "13px",
+    "label": "13px",
+    "heading": "21px",
+    "title": "28px"
+  },
+  "weights": {
+    "normal": 400,
+    "semibold": 600,
+    "bold": 700
+  },
+  "lineHeight": 1.43
+}

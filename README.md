@@ -64,13 +64,17 @@ Mỗi yêu cầu chạy Codex trong thư mục tạm riêng, dùng sandbox `read
 ```text
 templates/
   config.json
-  vnexpress/
+  vnexpress-light/
     typography.json
     light.json
+  vnexpress-dark/
+    typography.json
     dark.json
 ```
 
 `config.json` khai báo `defaultTemplate`, `defaultTheme` và danh sách `templates`; mỗi template có `name`, `path`, `themes`. Loader đọc `typography.json` dùng chung và `<theme>.json` tương ứng, không cần `manifest.json`.
+
+VnExpress được tách thành hai template có ID `vnexpress-light` (theme `light`) và `vnexpress-dark` (theme `dark`), mỗi thư mục có `typography.json` riêng để chỉnh font độc lập. Template mặc định là `vnexpress-light`, theme mặc định là `light`. Client dùng hai ID mới khi chọn template.
 
 Thư mục `templates/` hiện được bỏ qua trong Git, nên cần sao chép các file này khi triển khai. Sau khi cập nhật mã Python, dừng tiến trình Uvicorn cũ và chạy lại bằng lệnh ở trên. Nếu vẫn gặp lỗi tìm `manifest.json`, kiểm tra đường dẫn mã trong traceback và thư mục chạy server để xác định bản cũ đang được nạp.
 
