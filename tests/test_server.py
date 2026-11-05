@@ -69,9 +69,10 @@ class ServerTests(unittest.IsolatedAsyncioTestCase):
     async def test_templates_list_and_fetch_mau_01_files_without_codex(self):
         response = await self.client.get('/templates', headers={'X-API-Key': 'test-token'})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {'templates': [
-            {'id': 'mau_01', 'name': 'Bản đồ mẫu 01'}
-        ]})
+        catalog = response.json()['templates']
+        self.assertEqual([item['id'] for item in catalog], ['mau_01', 'mau_02', 'mau_03'])
+        self.assertEqual([item['navigation'] for item in catalog], ['pan_zoom', 'rotate_3d', 'rotate_3d'])
+        self.assertTrue(all(item['description'] for item in catalog))
         response = await self.client.get('/templates/mau_01',
                                          headers={'X-API-Key': 'test-token'})
         self.assertEqual(response.status_code, 200)

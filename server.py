@@ -90,7 +90,7 @@ async def list_templates(
 
     config = load_config()
     return {"templates": [
-        {"id": template_id, "name": info["name"]}
+        {"id": template_id, "name": info["name"], **({"navigation": info["navigation"], "description": info.get("description", "")} if info.get("navigation") else {})}
         for template_id, info in config["templates"].items()
     ]}
 

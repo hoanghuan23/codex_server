@@ -73,6 +73,9 @@ const map = new maplibregl.Map({
   zoom: config.zoom,
   attributionControl: { compact: true },
 });
+map.dragRotate.disable();
+map.keyboard.disable();
+map.touchZoomRotate.disableRotation();
 function collapseAttribution() {
   const control = map
     .getContainer()
