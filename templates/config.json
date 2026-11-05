@@ -8,6 +8,10 @@
         "mau_02": {
             "name": "Bản đồ mẫu 02",
             "path": "mau_02"
+        },
+        "mau_03": {
+            "name": "Bản đồ mẫu 03",
+            "path": "mau_03"
         }
     }
 }

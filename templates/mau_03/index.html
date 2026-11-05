@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mẫu 03 — Amber Cartography</title>
+    <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <main class="map-shell">
+        <div id="map" aria-label="Bản đồ"></div>
+        <div class="top-rail">
+            <div class="search-card"><span class="search-mark">⌕</span><input
+                    placeholder="Tìm kiếm trong dữ liệu bản đồ…" aria-label="Tìm kiếm"><button class="search-go"
+                    type="button">Tìm</button></div>
+            <div class="layer-switch" aria-label="Chỉ số mẫu"><button class="chip active" type="button">◉ Chỉ số
+                    A</button><button class="chip" type="button">◇ Chỉ số B</button><button class="chip" type="button">≋
+                    Chỉ số C</button></div>
+        </div>
+        <div class="map-actions"><button id="zoomIn" title="Phóng to">+</button><button id="zoomOut"
+                title="Thu nhỏ">−</button><button id="fullscreen" title="Toàn màn hình">⛶</button></div>
+        <section class="legend" aria-label="Chú giải giao diện mẫu">
+            <div class="eyebrow">CHÚ GIẢI / LEGEND</div>
+            <div class="legend-title">Thang phân loại</div>
+            <div class="legend-swatches"><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="legend-note">Màu và ngưỡng thực tế do AI cung cấp</div>
+        </section>
+        <div class="popup-design" aria-label="Minh họa giao diện popup">
+            <div class="popup-top"><span>THÔNG TIN KHU VỰC</span><span class="popup-x">×</span></div>
+            <h2>Tiêu đề popup</h2>
+            <p>Khung giao diện tham chiếu. Nội dung, biểu đồ và dữ liệu sẽ do AI tạo.</p>
+            <div class="popup-divider"></div>
+            <div class="popup-footer">BẢN ĐỒ TƯƠNG TÁC <span>↗</span></div>
+        </div>
+        <div class="design-note">MẪU 03 <span>·</span> AMBER CARTOGRAPHY</div>
+    </main>
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>

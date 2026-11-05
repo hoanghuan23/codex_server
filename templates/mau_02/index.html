@@ -1,3 +1,52 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mẫu 02 — Editorial Atlas</title><link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet"><link rel="stylesheet" href="style.css"></head>
-<body><div class="layout"><aside class="sidebar"><div class="brand"><span class="brand-mark">◈</span><span>ATLAS <small>STUDIO / 02</small></span></div><div class="eyebrow">BẢN ĐỒ DỮ LIỆU</div><h1>Khám phá<br><em>không gian.</em></h1><p class="intro">Một giao diện bản đồ theo phong cách tạp chí, sáng và tối giản.</p><div class="rule"></div><label class="field-label" for="search">TÌM KIẾM ĐỊA ĐIỂM</label><div class="search-wrap"><span>⌕</span><input id="search" placeholder="Nhập địa danh..." autocomplete="off"></div><div class="eyebrow section-label">LỚP HIỂN THỊ</div><div class="layers" id="layerList"><button class="layer active" type="button"><span class="layer-dot"></span><span>Điểm quan sát</span><span class="layer-num">01</span></button><button class="layer" type="button"><span class="layer-dot hollow"></span><span>Ranh giới vùng</span><span class="layer-num">02</span></button><button class="layer" type="button"><span class="layer-dot amber"></span><span>Tuyến kết nối</span><span class="layer-num">03</span></button></div><div class="sidebar-bottom"><span class="tiny-label">CHỦ ĐỀ HIỂN THỊ</span><div class="palette"><i></i><i></i><i></i><i></i><i></i></div><p>Giao diện mẫu · Không có dữ liệu phân tích</p></div></aside><main class="map-area"><div id="map" aria-label="Bản đồ nền"></div><div class="map-heading"><span class="eyebrow">KHÔNG GIAN / VIỆT NAM</span><strong>Góc nhìn địa lý</strong></div><div class="map-tools"><button id="zoomIn" title="Phóng to">+</button><button id="zoomOut" title="Thu nhỏ">−</button><button id="fullscreen" title="Toàn màn hình">⛶</button></div><section class="legend" aria-label="Khung chú giải"><div class="legend-top"><span class="eyebrow">CHÚ GIẢI</span><span class="legend-index">01 / 03</span></div><h2>Phân lớp không gian</h2><div class="legend-row"><span class="swatch teal"></span><span>Điểm quan sát</span></div><div class="legend-row"><span class="swatch line"></span><span>Ranh giới vùng</span></div><div class="legend-row"><span class="swatch gold"></span><span>Tuyến kết nối</span></div><div class="legend-foot">Màu sắc &amp; ngưỡng thực tế do AI cung cấp</div></section><div class="map-credit">EDITORIAL MAP TEMPLATE <span>— 02</span></div></main></div><script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script><script src="app.js"></script></body></html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Mẫu 02 — Editorial Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="map-shell" aria-label="Giao diện bản đồ">
+    <div id="map" class="map-canvas" aria-label="Bản đồ nền"></div>
+    <div class="map-ui">
+      <section class="search-panel" aria-label="Tìm kiếm">
+        <div class="search-row">
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <input id="search" type="search" placeholder="Tìm kiếm địa điểm hoặc khu vực..." aria-label="Tìm kiếm địa điểm" autocomplete="off">
+          <button id="searchButton" class="search-action" type="button">Tìm</button>
+        </div>
+        <div class="search-hint" id="searchHint">Nhập tên địa điểm để tìm trong dữ liệu bản đồ</div>
+      </section>
+      <div class="layer-strip" id="layerList" aria-label="Bộ chọn lớp dữ liệu">
+        <button class="layer-chip active" type="button" aria-pressed="true"><span class="chip-dot"></span>Điểm quan sát</button>
+        <button class="layer-chip" type="button" aria-pressed="false"><span class="chip-dot outline"></span>Ranh giới vùng</button>
+        <button class="layer-chip" type="button" aria-pressed="false"><span class="chip-dot amber"></span>Tuyến kết nối</button>
+      </div>
+      <div class="map-tools" aria-label="Điều khiển bản đồ">
+        <button id="zoomIn" type="button" title="Phóng to" aria-label="Phóng to">+</button>
+        <button id="zoomOut" type="button" title="Thu nhỏ" aria-label="Thu nhỏ">−</button>
+        <button id="fullscreen" type="button" title="Toàn màn hình" aria-label="Toàn màn hình">⛶</button>
+        <button id="compass" type="button" title="La bàn — Đặt lại hướng Bắc" aria-label="Đặt lại bản đồ về hướng Bắc">
+          <svg class="compass-icon" viewBox="0 0 28 28" width="26" height="26" aria-hidden="true" focusable="false">
+            <circle cx="14" cy="14" r="12" fill="none" stroke="currentColor" stroke-width="1" opacity=".25"/>
+            <path d="M14 5 19 20 14 17Z" fill="var(--accent)"/>
+            <path d="M14 5 9 20 14 17Z" fill="currentColor" opacity=".45"/>
+          </svg>
+        </button>
+      </div>
+      <section class="legend" aria-label="Chú giải bản đồ">
+        <div class="legend-header"><span>CHÚ GIẢI</span><span class="legend-tag">MẪU 02</span></div>
+        <div class="legend-title">Lớp dữ liệu</div>
+        <div class="legend-row"><span class="legend-mark dot"></span><span>Điểm quan sát</span></div>
+        <div class="legend-row"><span class="legend-mark outline"></span><span>Ranh giới vùng</span></div>
+        <div class="legend-row"><span class="legend-mark route"></span><span>Tuyến kết nối</span></div>
+        <div class="legend-note">Nhãn, màu và ngưỡng sẽ được thay bằng kết quả AI</div>
+      </section>
+    </div>
+  </main>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
