@@ -9,8 +9,8 @@
     --ui-accent: #e5aa5c;
     --ui-radius: 6px;
     --ui-shadow: 0 10px 32px #0a0808a6;
-    --ui-font: 'Trebuchet MS', Arial, sans-serif;
-    --ui-title: Georgia, 'Times New Roman', serif;
+    --ui-font: 'Inter', Arial, sans-serif;
+    --ui-title: var(--ui-font);
     --chart-grid: #695445;
     --chart-label: #e2ceb1;
     --chart-accent: #e5aa5c
@@ -30,6 +30,11 @@ body,
 }
 
 body {
+    font-family: var(--ui-font)
+}
+
+.maplibregl-map,
+.maplibregl-popup {
     font-family: var(--ui-font)
 }
 

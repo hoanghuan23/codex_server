@@ -1,7 +1,7 @@
 /* Mẫu 02: giao diện editorial sáng, toàn bộ UI nằm nổi TRONG bản đồ. */
 :root {
-  --font-family: Arial, Helvetica, sans-serif;
-  --heading-font-family: Georgia, 'Times New Roman', serif;
+  --font-family: 'Roboto', Arial, Helvetica, sans-serif;
+  --heading-font-family: var(--font-family);
   --font-size: 13px;
   --popup-font-size: 13px;
   --popup-heading-size: 19px;
@@ -23,6 +23,7 @@
 * { box-sizing: border-box; }
 html, body, .map-shell, .map-canvas { margin:0; width:100%; height:100%; }
 body { font-family:var(--font-family); color:var(--text); font-size:var(--font-size); }
+.maplibregl-map, .maplibregl-popup { font-family:var(--font-family); }
 .map-shell { position:relative; overflow:hidden; background:#dfe8e4; }
 .map-canvas { position:absolute; inset:0; }
 .map-ui { position:absolute; inset:0; z-index:2; pointer-events:none; }

@@ -2,22 +2,22 @@
     "defaultTemplate": "mau_01",
     "templates": {
         "mau_01": {
-            "name": "Bản đồ mẫu 01",
+            "name": "Bản đồ 01",
             "path": "mau_01",
             "navigation": "pan_zoom",
-            "description": "Giao diện bản đồ 2D sáng, luôn hướng Bắc, hiển thị vùng, đường và điểm; hỗ trợ kéo và thu phóng."
+            "description": "nền đen, font chữ Arial, 2D"
         },
         "mau_02": {
-            "name": "Bản đồ mẫu 02",
+            "name": "Bản đồ 02",
             "path": "mau_02",
             "navigation": "rotate_3d",
-            "description": "Bản đồ toàn màn hình với la bàn và vùng hiển thị rộng, hỗ trợ xoay và nghiêng để quan sát các luồng dạng cung 3D."
+            "description": "nền trắng, font chữ Roboto, 3D"
         },
         "mau_03": {
-            "name": "Bản đồ mẫu 03",
+            "name": "Bản đồ 03",
             "path": "mau_03",
             "navigation": "rotate_3d",
-            "description": "Giao diện tối gọn cho bản đồ 3D nhiều lớp, hỗ trợ xoay và nghiêng."
+            "description": "nền nâu, font chữ Inter, 3D"
         }
     }
 }

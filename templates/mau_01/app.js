@@ -1,10 +1,4 @@
-/* MAP TEMPLATE CONTRACT
- * Template owns theme and interaction shell. AI owns data, map metrics and popup content.
- * Supply window.MAP_CONFIG, window.MAP_DATA, window.MAP_POPUP_CONFIG before this script.
- * Optional window.MAP_DEMO_MODE=true enables small sample point data for preview only.
- * Popup schema: {type:'info'|'bar'|'line'|'pie',title,xField,yFields,fields}.
- * Chart style always inherits CSS design tokens, never a library default theme.
- */
+
 const DEFAULT_CONFIG = {
   center: [106.2, 17.3],
   zoom: 5.2,

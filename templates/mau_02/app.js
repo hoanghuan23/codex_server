@@ -1,8 +1,3 @@
-/* MAU_02 — GIAO DIỆN BẢN ĐỒ TOÀN MÀN HÌNH
- * Không có dữ liệu GeoJSON giả.
- * Không có xử lý popup, biểu đồ, click feature hoặc truy vấn dữ liệu bản đồ.
- * JS chỉ khởi tạo nền MapLibre và xử lý các nút UI cơ bản.
- */
 const map = new maplibregl.Map({
   container: 'map',
   style: 'https://tiles.openfreemap.org/styles/liberty',
