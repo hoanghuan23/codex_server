@@ -66,6 +66,46 @@ class ServerTests(unittest.IsolatedAsyncioTestCase):
         self.process.communicate.assert_awaited_once_with(input=prompt.encode('utf-8'))
         self.assertFalse(self.workdirs[0].exists())
 
+    async def test_video_endpoint_forwards_prompt_and_model_without_loading_map(self):
+        with patch.object(server, 'load_template') as template:
+            response = await self.client.post('/generate-video', json={
+                'prompt': 'Generate deterministic rain configuration',
+                'model': 'video-model',
+            }, headers={'X-API-Key': 'test-token'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'success': True, 'result': 'Xin chào'})
+        self.assertIn('video-model', self.execute.call_args.args)
+        self.process.communicate.assert_awaited_once_with(
+            input=b'Generate deterministic rain configuration')
+        template.assert_not_called()
+        self.assertFalse(self.workdirs[0].exists())
+
+    async def test_video_endpoint_requires_authentication(self):
+        for headers in ({}, {'X-API-Key': 'wrong'}):
+            response = await self.client.post('/generate-video', json={
+                'prompt': 'Rain', 'model': 'video-model'}, headers=headers)
+            self.assertEqual(response.status_code, 401)
+        self.execute.assert_not_called()
+
+    async def test_video_endpoint_rejects_invalid_and_map_template_payloads(self):
+        for payload in ({}, {'prompt': 'Rain'},
+                        {'prompt': '', 'model': 'video-model'},
+                        {'prompt': 'Rain', 'model': 'bad model!'},
+                        {'prompt': 'Rain', 'model': 'video-model', 'template': 'mau_01'}):
+            response = await self.client.post('/generate-video', json=payload,
+                headers={'X-API-Key': 'test-token'})
+            self.assertEqual(response.status_code, 422)
+        self.execute.assert_not_called()
+
+    async def test_video_endpoint_reports_codex_failure_and_cleans_directory(self):
+        self.process.returncode = 1
+        response = await self.client.post('/generate-video', json={
+            'prompt': 'Rain', 'model': 'video-model'},
+            headers={'X-API-Key': 'test-token'})
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.json(), {'detail': 'Codex execution failed'})
+        self.assertFalse(self.workdirs[0].exists())
+
     async def test_templates_list_and_fetch_mau_01_files_without_codex(self):
         response = await self.client.get('/templates', headers={'X-API-Key': 'test-token'})
         self.assertEqual(response.status_code, 200)

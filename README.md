@@ -85,3 +85,15 @@ python3 -m unittest discover -s tests -v
 ```
 
 Kiểm thử dùng Codex giả lập, không gọi AI thật.
+
+## Endpoint dành riêng cho video
+
+`POST /generate-video` nhận JSON `{"prompt":"...","model":"your-model-id"}`
+và header `X-API-Key` như `/analyze`. Không nhận trường `template` và không tải
+các template bản đồ. Endpoint `/analyze` và `/templates` vẫn hoạt động như cũ.
+
+URL cục bộ: `http://127.0.0.1:8000/generate-video`.
+Phản hồi vẫn là `{"success":true,"result":"Nội dung do Codex sinh"}`.
+Client gửi đầy đủ prompt và ngữ cảnh video; endpoint này sinh nội dung AI,
+không tự render MP4. HyperFrames trong dự án client thực hiện preview/render.
+Khởi động lại Uvicorn sau khi cập nhật để nạp route mới.
