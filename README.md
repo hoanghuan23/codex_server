@@ -43,6 +43,8 @@ cloudflared tunnel --url http://127.0.0.1:8000
 
 Gửi `POST /analyze` với header `X-API-Key` trùng `CODEX_API_TOKEN` và JSON có `prompt`, `model` là các chuỗi không rỗng. Server truyền nguyên giá trị `model` do client gửi cho Codex CLI, không tự chọn model hay dùng model mặc định. Thiếu `model` trả HTTP 422.
 
+`/analyze` không chọn template mặc định. Trường `template` là tùy chọn, mặc định `null` và hiện không tham gia xử lý prompt.
+
 ```bash
 curl http://127.0.0.1:8000/analyze \
   -H 'Content-Type: application/json' \
@@ -86,14 +88,38 @@ python3 -m unittest discover -s tests -v
 
 Kiểm thử dùng Codex giả lập, không gọi AI thật.
 
-## Endpoint dành riêng cho video
+## Endpoint sinh nội dung chung
 
-`POST /generate-video` nhận JSON `{"prompt":"...","model":"your-model-id"}`
-và header `X-API-Key` như `/analyze`. Không nhận trường `template` và không tải
-các template bản đồ. Endpoint `/analyze` và `/templates` vẫn hoạt động như cũ.
+`POST /generate` dùng chung cho HTML, nội dung video và các yêu cầu sinh nội dung
+khác. Endpoint này thay thế `/generate-html` và `/generate-video`; client cần đổi
+URL gọi API sang `http://127.0.0.1:8000/generate`. Hai URL cũ đã được gỡ bỏ.
 
-URL cục bộ: `http://127.0.0.1:8000/generate-video`.
-Phản hồi vẫn là `{"success":true,"result":"Nội dung do Codex sinh"}`.
-Client gửi đầy đủ prompt và ngữ cảnh video; endpoint này sinh nội dung AI,
-không tự render MP4. HyperFrames trong dự án client thực hiện preview/render.
-Khởi động lại Uvicorn sau khi cập nhật để nạp route mới.
+Request nhận JSON `{"prompt":"...","model":"your-model-id"}` và header
+`X-API-Key` như `/analyze`. Client gửi đầy đủ yêu cầu, ngữ cảnh và định dạng kết quả
+mong muốn trong `prompt`. Endpoint không nhận trường `template` và không tải
+các template bản đồ. `/analyze` và `/templates` vẫn hoạt động như cũ.
+
+Ví dụ sinh HTML:
+
+```bash
+curl http://127.0.0.1:8000/generate \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: replace-with-your-api-token' \
+  -d '{"prompt":"Sinh một trang HTML hoàn chỉnh có bộ đếm và nút tăng/giảm bằng JavaScript. Nhúng CSS và JavaScript trong HTML. Chỉ trả mã HTML, không bọc Markdown, không giải thích.","model":"your-model-id"}'
+```
+
+Phản hồi JSON:
+
+```json
+{"success":true,"result":"<!DOCTYPE html><html>...</html>"}
+```
+
+`result` là văn bản Codex trả về, không được kiểm tra hay chuyển đổi định dạng.
+Với HTML, client có thể dùng `srcdoc` của iframe có `sandbox="allow-scripts"`
+để preview tương tác; API không lưu hay tạo URL lưu trữ trang. Với video, client
+truyền prompt và ngữ cảnh video, rồi dùng HyperFrames trong dự án client để
+preview/render; server không tự render MP4.
+
+Token sai hoặc thiếu trả HTTP 401; thiếu `prompt`/`model`, chuỗi rỗng hoặc trường
+không hỗ trợ trả HTTP 422; Codex chạy lỗi trả HTTP 500; không khởi chạy được CLI
+trả HTTP 503. Khởi động lại Uvicorn sau khi cập nhật để nạp endpoint mới.

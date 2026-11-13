@@ -66,9 +66,9 @@ class ServerTests(unittest.IsolatedAsyncioTestCase):
         self.process.communicate.assert_awaited_once_with(input=prompt.encode('utf-8'))
         self.assertFalse(self.workdirs[0].exists())
 
-    async def test_video_endpoint_forwards_prompt_and_model_without_loading_map(self):
+    async def test_generate_endpoint_forwards_video_prompt_and_model_without_loading_map(self):
         with patch.object(server, 'load_template') as template:
-            response = await self.client.post('/generate-video', json={
+            response = await self.client.post('/generate', json={
                 'prompt': 'Generate deterministic rain configuration',
                 'model': 'video-model',
             }, headers={'X-API-Key': 'test-token'})
@@ -80,31 +80,69 @@ class ServerTests(unittest.IsolatedAsyncioTestCase):
         template.assert_not_called()
         self.assertFalse(self.workdirs[0].exists())
 
-    async def test_video_endpoint_requires_authentication(self):
+    async def test_generate_endpoint_returns_generated_html_without_loading_map(self):
+        prompt = 'Sinh HTML có nút tăng bộ đếm, nhúng CSS và JavaScript.'
+        html = ('<!DOCTYPE html><html><body><button id="count">0</button>'
+                '<script>document.querySelector("button").onclick = '
+                'event => event.target.textContent++;</script></body></html>')
+        self.process.communicate.return_value = (html.encode('utf-8'), b'')
+        with patch.object(server, 'load_template') as template:
+            response = await self.client.post('/generate', json={
+                'prompt': prompt, 'model': 'html-model',
+            }, headers={'X-API-Key': 'test-token'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'success': True, 'result': html})
+        self.assertIn('html-model', self.execute.call_args.args)
+        self.process.communicate.assert_awaited_once_with(input=prompt.encode('utf-8'))
+        template.assert_not_called()
+        self.assertFalse(self.workdirs[0].exists())
+
+    async def test_generate_endpoint_requires_authentication(self):
         for headers in ({}, {'X-API-Key': 'wrong'}):
-            response = await self.client.post('/generate-video', json={
-                'prompt': 'Rain', 'model': 'video-model'}, headers=headers)
+            response = await self.client.post('/generate', json={
+                'prompt': 'Generate HTML', 'model': 'html-model'}, headers=headers)
             self.assertEqual(response.status_code, 401)
         self.execute.assert_not_called()
 
-    async def test_video_endpoint_rejects_invalid_and_map_template_payloads(self):
-        for payload in ({}, {'prompt': 'Rain'},
-                        {'prompt': '', 'model': 'video-model'},
-                        {'prompt': 'Rain', 'model': 'bad model!'},
-                        {'prompt': 'Rain', 'model': 'video-model', 'template': 'mau_01'}):
-            response = await self.client.post('/generate-video', json=payload,
-                headers={'X-API-Key': 'test-token'})
-            self.assertEqual(response.status_code, 422)
+    async def test_generate_endpoint_rejects_invalid_and_template_payloads(self):
+        for payload in ({}, {'prompt': 'Generate HTML'},
+                        {'model': 'html-model'},
+                        {'prompt': '', 'model': 'html-model'},
+                        {'prompt': 'Generate HTML', 'model': ''},
+                        {'prompt': 'Generate HTML', 'model': 'bad model!'},
+                        {'prompt': 'Generate HTML', 'model': 'html-model',
+                         'template': 'mau_01'}):
+            with self.subTest(payload=payload):
+                response = await self.client.post('/generate', json=payload,
+                    headers={'X-API-Key': 'test-token'})
+                self.assertEqual(response.status_code, 422)
         self.execute.assert_not_called()
 
-    async def test_video_endpoint_reports_codex_failure_and_cleans_directory(self):
+    async def test_generate_endpoint_reports_codex_failure_and_cleans_directory(self):
         self.process.returncode = 1
-        response = await self.client.post('/generate-video', json={
-            'prompt': 'Rain', 'model': 'video-model'},
+        response = await self.client.post('/generate', json={
+            'prompt': 'Generate HTML', 'model': 'html-model'},
             headers={'X-API-Key': 'test-token'})
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.json(), {'detail': 'Codex execution failed'})
         self.assertFalse(self.workdirs[0].exists())
+
+    async def test_generate_endpoint_reports_unavailable_codex(self):
+        self.execute.side_effect = FileNotFoundError('codex.cmd')
+        response = await self.client.post('/generate', json={
+            'prompt': 'Generate HTML', 'model': 'html-model'},
+            headers={'X-API-Key': 'test-token'})
+        self.assertEqual(response.status_code, 503)
+        self.assertFalse(Path(self.execute.call_args.kwargs['cwd']).exists())
+
+    async def test_old_generation_endpoints_are_removed(self):
+        for endpoint in ('/generate-html', '/generate-video'):
+            with self.subTest(endpoint=endpoint):
+                response = await self.client.post(endpoint, json={
+                    'prompt': 'Generate content', 'model': 'client-selected-model'},
+                    headers={'X-API-Key': 'test-token'})
+                self.assertEqual(response.status_code, 404)
+        self.execute.assert_not_called()
 
     async def test_templates_list_and_fetch_mau_01_files_without_codex(self):
         response = await self.client.get('/templates', headers={'X-API-Key': 'test-token'})

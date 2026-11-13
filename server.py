@@ -34,23 +34,23 @@ class Request(BaseModel):
 
     prompt: str = Field(min_length=1)
     model: str = Field(min_length=1, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/-]*$")
-    template: str = "mau_01"
+    template: str | None = None
 
-class VideoRequest(BaseModel):
-    """Video generation accepts prompt/model, without map template selection."""
+
+class GenerateRequest(BaseModel):
+    """Content generation accepts the client's complete prompt and model."""
     model_config = ConfigDict(extra="forbid")
 
     prompt: str = Field(min_length=1)
     model: str = Field(min_length=1, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/-]*$")
 
 
-@app.post("/generate-video", tags=["video"])
-async def generate_video(
-    data: VideoRequest,
+@app.post("/generate", tags=["generation"])
+async def generate(
+    data: GenerateRequest,
     x_api_key: str | None = Header(default=None)
 ):
-    # Reuse the existing authenticated, read-only Codex runner. No map
-    # template is loaded: the complete video instructions come from the client.
+    # The client supplies all content instructions and context.
     return await analyze(Request(prompt=data.prompt, model=data.model), x_api_key)
 
 
