@@ -2,9 +2,11 @@
 # cloudflared tunnel --url http://127.0.0.1:8000
 
 import asyncio
+import base64
 import os
 import shutil
 import tempfile
+from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException
@@ -15,6 +17,8 @@ load_dotenv()
 app = FastAPI()
 
 API_TOKEN = os.environ["CODEX_API_TOKEN"]
+IMAGE_GENERATION_TIMEOUT = 600
+MAX_IMAGE_BYTES = 20 * 1024 * 1024
 
 
 def resolve_codex_executable():
@@ -52,6 +56,83 @@ async def generate(
 ):
     # The client supplies all content instructions and context.
     return await analyze(Request(prompt=data.prompt, model=data.model), x_api_key)
+
+
+@app.post("/generate-image", tags=["generation"])
+async def generate_image(
+    data: GenerateRequest,
+    x_api_key: str | None = Header(default=None)
+):
+    """Generate one PNG through the logged-in Codex CLI and return its base64."""
+    if x_api_key != API_TOKEN:
+        raise HTTPException(401, "Unauthorized")
+    if not data.prompt.strip():
+        raise HTTPException(422, "Image prompt must not be blank")
+
+    with tempfile.TemporaryDirectory() as workdir:
+        output = Path(workdir) / "output.png"
+        prompt = (
+             "$imagegen\n"
+            "Generate exactly one image using the image generation tool.\n"
+            "Do not use SVG, HTML, or drawing code.\n"
+            "Save the generated PNG as output.png in the current directory.\n"
+            "If generation fails, do not create output.png.\n\n"
+            f"Prompt: {data.prompt}\n"
+        )
+        try:
+            process = await asyncio.create_subprocess_exec(
+                resolve_codex_executable(),
+                "--ask-for-approval", "never",
+                "--enable", "image_generation",
+                "exec", "--model", data.model,
+                "--skip-git-repo-check",
+                "--sandbox", "workspace-write", "-",
+                cwd=workdir,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+        except OSError as exc:
+            raise HTTPException(
+                503, "Could not start Codex CLI; check CODEX_CLI_PATH or PATH"
+            ) from exc
+
+        try:
+            await asyncio.wait_for(
+                process.communicate(input=prompt.encode("utf-8")),
+                timeout=IMAGE_GENERATION_TIMEOUT
+            )
+        except (asyncio.TimeoutError, asyncio.CancelledError) as exc:
+            try:
+                process.kill()
+            except ProcessLookupError:
+                pass
+            await process.communicate()
+            if isinstance(exc, asyncio.CancelledError):
+                raise
+            raise HTTPException(504, "Codex image generation timed out") from exc
+
+        if process.returncode != 0:
+            raise HTTPException(500, "Codex image generation failed")
+
+        # Only read the fixed artifact in this request's directory, never a path
+        # supplied by the client or extracted from the model's response text.
+        try:
+            if output.is_symlink() or not output.is_file():
+                raise HTTPException(502, "Codex did not produce a PNG image")
+            if output.stat().st_size > MAX_IMAGE_BYTES:
+                raise HTTPException(502, "Generated image exceeds the 20 MiB limit")
+            image_bytes = output.read_bytes()
+        except OSError as exc:
+            raise HTTPException(502, "Could not read the generated image") from exc
+        if not image_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+            raise HTTPException(502, "Codex did not produce a PNG image")
+
+        return {
+            "success": True,
+            "output_format": "png",
+            "data": [{"b64_json": base64.b64encode(image_bytes).decode("ascii")}]
+        }
 
 
 @app.post("/analyze")

@@ -1,5 +1,7 @@
 """Kiểm tra API server với tiến trình Codex giả lập."""
 import importlib.util
+import asyncio
+import base64
 import json
 import os
 import tempfile
@@ -264,6 +266,158 @@ class ServerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.json()['detail'],
                          'Could not start Codex CLI; check CODEX_CLI_PATH or PATH')
         self.execute.assert_awaited_once()
+
+
+class ImageGenerationTests(unittest.IsolatedAsyncioTestCase):
+    PNG = base64.b64decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8'
+        '/x8AAwMCAO+aElkAAAAASUVORK5CYII=')
+
+    async def asyncSetUp(self):
+        self.client = AsyncClient(
+            transport=ASGITransport(app=server.app), base_url='http://testserver')
+        self.addAsyncCleanup(self.client.aclose)
+        self.workdirs = []
+        self.artifact = self.PNG
+        self.process = Mock(returncode=0)
+        self.process.communicate = AsyncMock(return_value=(b'Image created', b''))
+
+        async def execute(*command, **kwargs):
+            directory = Path(kwargs['cwd'])
+            self.assertEqual(list(directory.iterdir()), [])
+            self.workdirs.append(directory)
+            if self.artifact is not None:
+                (directory / 'output.png').write_bytes(self.artifact)
+            return self.process
+
+        for target, attribute, options in (
+            (server.asyncio, 'create_subprocess_exec', {'side_effect': execute}),
+            (server, 'resolve_codex_executable', {'return_value': 'codex-test'}),
+            (server, 'API_TOKEN', {'new': 'test-token'}),
+        ):
+            patcher = patch.object(target, attribute, **options)
+            mocked = patcher.start()
+            self.addCleanup(patcher.stop)
+            if attribute == 'create_subprocess_exec':
+                self.execute = mocked
+
+    async def post(self, payload=None, headers=None):
+        return await self.client.post('/generate-image', json=(
+            {'prompt': 'Vẽ chú mèo trên nền trong suốt', 'model': 'client-model'}
+            if payload is None else payload), headers=(
+            {'X-API-Key': 'test-token'} if headers is None else headers))
+
+    async def test_returns_actual_png_bytes_and_cleans_directory(self):
+        response = await self.post()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            'success': True, 'output_format': 'png',
+            'data': [{'b64_json': base64.b64encode(self.PNG).decode('ascii')}]})
+        command = self.execute.call_args.args
+        self.assertEqual(command, (
+            'codex-test', '--ask-for-approval', 'never',
+            '--enable', 'image_generation', 'exec', '--model', 'client-model',
+            '--skip-git-repo-check', '--sandbox', 'workspace-write', '-'))
+        prompt = self.process.communicate.call_args.kwargs['input'].decode('utf-8')
+        self.assertIn('$imagegen', prompt)
+        self.assertIn('output.png', prompt)
+        self.assertTrue(prompt.endswith('Vẽ chú mèo trên nền trong suốt'))
+        self.assertFalse(self.workdirs[0].exists())
+
+    async def test_requires_authentication_without_starting_codex(self):
+        for headers in ({}, {'X-API-Key': 'wrong'}):
+            self.assertEqual((await self.post(headers=headers)).status_code, 401)
+        self.execute.assert_not_called()
+
+    async def test_validates_prompt_and_requires_explicit_model(self):
+        for payload in ({}, {'prompt': 'Cat'}, {'model': 'client-model'},
+                        {'prompt': '', 'model': 'client-model'},
+                        {'prompt': ' \n\t', 'model': 'client-model'},
+                        {'prompt': 'Cat', 'model': 'bad model!'},
+                        {'prompt': 'Cat', 'model': ''},
+                        {'prompt': 'Cat', 'model': 'client-model', 'path': '/tmp/a'}):
+            with self.subTest(payload=payload):
+                self.assertEqual((await self.post(payload)).status_code, 422)
+        self.execute.assert_not_called()
+
+    async def test_large_prompt_uses_stdin(self):
+        prompt = 'Vẽ mèo\n' * 30000
+        response = await self.post({'prompt': prompt, 'model': 'client-model'})
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(prompt, self.execute.call_args.args)
+        sent = self.process.communicate.call_args.kwargs['input'].decode('utf-8')
+        self.assertTrue(sent.endswith(prompt))
+
+    async def test_successful_text_without_an_image_is_not_success(self):
+        self.artifact = None
+        response = await self.post()
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.json()['detail'], 'Codex did not produce a PNG image')
+        self.assertFalse(self.workdirs[0].exists())
+
+    async def test_rejects_text_disguised_as_png(self):
+        self.artifact = b'<svg>not a generated PNG</svg>'
+        self.assertEqual((await self.post()).status_code, 502)
+        self.assertFalse(self.workdirs[0].exists())
+
+    async def test_rejects_oversize_image(self):
+        with patch.object(server, 'MAX_IMAGE_BYTES', len(self.PNG) - 1):
+            response = await self.post()
+        self.assertEqual(response.status_code, 502)
+        self.assertFalse(self.workdirs[0].exists())
+
+    async def test_rejects_symlink_to_file_outside_request(self):
+        self.artifact = None
+        execute = self.execute.side_effect
+        with tempfile.TemporaryDirectory() as directory:
+            outside = Path(directory) / 'private.png'
+            outside.write_bytes(self.PNG)
+
+            async def symlink_output(*command, **kwargs):
+                process = await execute(*command, **kwargs)
+                (Path(kwargs['cwd']) / 'output.png').symlink_to(outside)
+                return process
+
+            self.execute.side_effect = symlink_output
+            response = await self.post()
+        self.assertEqual(response.status_code, 502)
+        self.assertFalse(self.workdirs[0].exists())
+
+    async def test_cli_failure_does_not_expose_diagnostics_or_return_image(self):
+        self.process.returncode = 1
+        self.process.communicate.return_value = (b'private output', b'private error')
+        response = await self.post()
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.json(), {'detail': 'Codex image generation failed'})
+        self.assertFalse(self.workdirs[0].exists())
+
+    async def test_spawn_failure_cleans_directory(self):
+        self.execute.side_effect = FileNotFoundError('codex')
+        response = await self.post()
+        self.assertEqual(response.status_code, 503)
+        self.assertFalse(Path(self.execute.call_args.kwargs['cwd']).exists())
+
+    async def test_missing_cli_returns_503_without_spawning(self):
+        with patch.object(server, 'resolve_codex_executable', side_effect=
+                          server.HTTPException(503, 'Codex CLI not found')):
+            response = await self.post()
+        self.assertEqual(response.status_code, 503)
+        self.execute.assert_not_called()
+
+    async def test_timeout_kills_process_and_cleans_directory(self):
+        self.process.communicate.side_effect = [asyncio.TimeoutError(), (b'', b'')]
+        response = await self.post()
+        self.assertEqual(response.status_code, 504)
+        self.process.kill.assert_called_once_with()
+        self.assertEqual(self.process.communicate.await_count, 2)
+        self.assertFalse(self.workdirs[0].exists())
+
+    async def test_cancellation_kills_process_and_cleans_directory(self):
+        self.process.communicate.side_effect = [asyncio.CancelledError(), (b'', b'')]
+        with self.assertRaises(asyncio.CancelledError):
+            await self.post()
+        self.process.kill.assert_called_once_with()
+        self.assertFalse(self.workdirs[0].exists())
 
 
 class CodexExecutableTests(unittest.TestCase):

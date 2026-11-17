@@ -1,6 +1,6 @@
 # Codex Server
 
-API FastAPI nhận prompt, gọi Codex CLI và trả kết quả văn bản.
+API FastAPI nhận prompt, gọi Codex CLI và trả kết quả văn bản hoặc ảnh PNG base64.
 
 ## Cài đặt
 
@@ -123,3 +123,48 @@ preview/render; server không tự render MP4.
 Token sai hoặc thiếu trả HTTP 401; thiếu `prompt`/`model`, chuỗi rỗng hoặc trường
 không hỗ trợ trả HTTP 422; Codex chạy lỗi trả HTTP 500; không khởi chạy được CLI
 trả HTTP 503. Khởi động lại Uvicorn sau khi cập nhật để nạp endpoint mới.
+
+## Endpoint tạo ảnh qua Codex CLI
+
+`POST /generate-image` nhận JSON `{"prompt":"...","model":"your-model-id"}`
+và header `X-API-Key` trùng `CODEX_API_TOKEN`. `model` là model chạy agent Codex,
+giống `/generate`, không phải ID model `gpt-image-*`. Client phải gửi model;
+server không tự chọn hoặc thay thế model.
+
+Endpoint dùng Codex CLI đã đăng nhập, bật tính năng `image_generation` và gọi
+`$imagegen` để tạo đúng một PNG. Không cần cấu hình API key tạo ảnh riêng.
+Cần bản Codex CLI hỗ trợ tính năng này và tài khoản/model có quyền tạo ảnh.
+Xem [tài liệu tạo ảnh chính thức](https://learn.chatgpt.com/docs/image-generation).
+
+```bash
+curl http://127.0.0.1:8000/generate-image \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: replace-with-your-api-token' \
+  -d '{"prompt":"Vẽ một chú mèo pixel art, nền trong suốt, kích thước 1024x1024.","model":"your-model-id"}'
+```
+
+Phản hồi thành công chứa byte ảnh thật được mã hóa base64:
+
+```json
+{"success":true,"output_format":"png","data":[{"b64_json":"iVBORw0KGgo..."}]}
+```
+
+Hiển thị trong trình duyệt bằng
+`img.src = "data:image/png;base64," + response.data[0].b64_json`, hoặc giải mã
+`data[0].b64_json` thành file PNG. Mô tả kích thước, phong cách và nền mong muốn
+trong `prompt`; endpoint không có trường điều khiển kích thước/chất lượng riêng.
+
+Mỗi request chạy trong thư mục tạm riêng với sandbox `workspace-write` để CLI
+có thể chép ảnh vào `output.png`. Server chỉ đọc file cố định này, từ chối symlink,
+kiểm tra chữ ký PNG và giới hạn file ở 20 MiB. Văn bản CLI không được coi là ảnh.
+Thư mục request được dọn sau khi xử lý; bản gốc do CLI lưu trong thư mục ảnh của
+Codex vẫn được quản lý theo cơ chế của CLI.
+
+Token sai/thiếu trả HTTP 401; thiếu `prompt`/`model`, prompt chỉ có khoảng trắng
+hoặc trường không hỗ trợ trả HTTP 422; CLI lỗi trả HTTP 500; không khởi chạy
+được CLI trả HTTP 503; CLI kết thúc nhưng không tạo PNG hợp lệ theo kiểm tra trên
+trả HTTP 502. Request quá 600 giây trả HTTP 504 và dừng tiến trình CLI; khi tác vụ
+server bị hủy, tiến trình CLI cũng được dừng trước khi dọn thư mục.
+
+Khởi động lại Uvicorn sau khi cập nhật. Kiểm thử endpoint dùng CLI giả lập,
+không tạo ảnh thật và không tiêu thụ lượt tạo ảnh của tài khoản.
